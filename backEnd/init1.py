@@ -113,6 +113,7 @@ def logout():
 	return redirect('/')
 		
 app.secret_key = 'some key that you will never guess'
+
 #Run the app on localhost port 5000
 #debug = True -> you don't have to restart flask
 #for changes to go through, TURN OFF FOR PRODUCTION
