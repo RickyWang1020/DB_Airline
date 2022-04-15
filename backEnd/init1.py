@@ -2,6 +2,7 @@
 from flask import Flask, render_template, request, session, url_for, redirect
 import pymysql.cursors
 
+
 #Initialize the app from Flask
 app = Flask(__name__)
 
@@ -9,7 +10,7 @@ app = Flask(__name__)
 conn = pymysql.connect(host='localhost',
                        user='root',
                        password='',
-                       db='blog',
+                       db='airline',
                        charset='utf8mb4',
                        cursorclass=pymysql.cursors.DictCursor)
 
@@ -27,6 +28,18 @@ def login():
 @app.route('/register')
 def register():
 	return render_template('register.html')
+
+@app.route('/registerCustomer')
+def registerCustomer():
+	return render_template('register_customer.html')
+
+@app.route('/registerBookingAgent')
+def registerBookingAgent():
+	return render_template('register_booking_agent.html')
+
+@app.route('/registerAirlineStaff')
+def registerAirlineStaff():
+	return render_template('register_airline_staff.html')
 
 #Authenticates the login
 @app.route('/loginAuth', methods=['GET', 'POST'])
@@ -56,28 +69,38 @@ def loginAuth():
 		return render_template('login.html', error=error)
 
 #Authenticates the register
-@app.route('/registerAuth', methods=['GET', 'POST'])
-def registerAuth():
+@app.route('/registerCustomerAuth', methods=['GET', 'POST'])
+def registerCustomerAuth():
 	#grabs information from the forms
-	username = request.form['username']
+	email = request.form['email']
+	name = request.form['name']
 	password = request.form['password']
-
+	building_number = request.form['building_number']
+	street = request.form['street']
+	city = request.form['city']
+	state = request.form['state']
+	phone_number = request.form['phone_number']
+	passport_number = request.form['passport_number']
+	passport_expiration = request.form['passport_expiration']
+	passport_country = request.form['passport_country']
+	date_of_birth = request.form['date_of_birth']
+	# app.logger.info(role)
 	#cursor used to send queries
 	cursor = conn.cursor()
 	#executes query
-	query = 'SELECT * FROM user WHERE username = %s'
-	cursor.execute(query, (username))
+	query_1 = 'SELECT * FROM customer WHERE email = %s'
+	cursor.execute(query_1, (email))
 	#stores the results in a variable
-	data = cursor.fetchone()
+	data_1 = cursor.fetchone()
 	#use fetchall() if you are expecting more than 1 data row
 	error = None
-	if(data):
+	if(data_1):
 		#If the previous query returns data, then user exists
 		error = "This user already exists"
 		return render_template('register.html', error = error)
 	else:
-		ins = 'INSERT INTO user VALUES(%s, %s)'
-		cursor.execute(ins, (username, password))
+		ins = 'INSERT INTO customer VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
+		cursor.execute(ins, (email, name, password, building_number, street, city, state, phone_number, passport_number, passport_expiration, passport_country, date_of_birth))
 		conn.commit()
 		cursor.close()
 		return render_template('index.html')
