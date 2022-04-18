@@ -3,18 +3,28 @@
 </head>
 <body>
 <form action="/post" method="POST">
-	<h1>Welcome {{username}}</h1>
+	<h1>Welcome, {{username}}!</h1>
 	<input type="text" name = "blog" placeholder="post" required/> </br>
 	<input type="submit" value = Post />
 </form>
 
-<style type="text/css">
+<table>
+	<th>Time</th>
+	<th>Post</th>
+
+	<tr>
+		<td>{{posts['name']}}</td>
+		<td>{{posts['email']}}</td>
+	</tr>
+</table>
+
+<!-- <style type="text/css">
 	table, th, td{
 		border: 1px solid black;
 	}
-</style>
+</style> -->
 
-<table>
+<!-- <table>
 	<th>Time</th>
 	<th>Post</th>
 
@@ -24,7 +34,7 @@
 		<td>{{line['blog_post']}}</td>
 	</tr>
 {% endfor %}
-</table>
+</table> -->
 
 <a href="/logout">Logout</a>
 
