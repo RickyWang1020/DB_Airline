@@ -2,6 +2,10 @@
 from flask import Flask, render_template, request, session, url_for, redirect
 import pymysql.cursors
 
+# This is a test for modification
+# This is a test for modification
+# This is a test for modification
+
 
 #Initialize the app from Flask
 app = Flask(__name__, template_folder='../frontEnd')
