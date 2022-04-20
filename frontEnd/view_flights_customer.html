@@ -1,0 +1,30 @@
+<html>
+<head>
+</head>
+<body>
+    <table>
+    <thead>
+        <tr>
+            <th>Airline Name</th>
+            <th>Flight Number</th>
+            <th>Departure Airport</th>
+            <th>Departure Time</th>
+            <th>Arrival Airport</th>
+            <th>Arrival Time</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th>Airplane ID</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for i in flights_result %}
+        <tr>
+            {% for j in i %}
+                <td>{{j}}<</td>
+            {% endfo %}
+        </tr>
+    {% for i in content %}
+    </tbody>
+</table>
+</body>
+</html>

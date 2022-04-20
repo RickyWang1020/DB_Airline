@@ -183,6 +183,44 @@ def registerAirlineStaffAuth():
 		cursor.close()
 		return render_template('index.html')
 
+@app.route('/viewMyFlights', methods=['GET', 'POST'])
+def registerCustomerAuth():
+	# grabs information from the forms
+	username = session['username']
+	usertype = session['usertype']
+	query_1 = 'SELECT * FROM flight WHERE where (airline_name, flight_num) in %s ORDER BY departure_time'
+	if (usertype == "customer"):
+		app.logger.info(username)
+		cursor = conn.cursor()
+		query_2 = 'SELECT airline_name, flight_num FROM ticket, purchase WHERE customer_email = %s'
+		cursor.execute(query_2, (username))
+		data2 = cursor.fetchone()
+		cursor.execute(query_1, (data2))
+		data1 = cursor.fetchone()
+		cursor.close()
+		return render_template('view_flights_customer.html', username=username, flights_result=data1)
+	if (usertype == "booking_agent"):
+		app.logger.info(username)
+		cursor = conn.cursor()
+		query_2 = 'SELECT airline_name, flight_num FROM ticket, purchase WHERE booking_agent_id = %s'
+		cursor.execute(query_2, (username))
+		data2 = cursor.fetchone()
+		cursor.execute(query_1, (data2))
+		data1 = cursor.fetchone()
+		cursor.close()
+		return render_template('view_flights_customer.html', username=username, flights_result=data1)
+	if (usertype == "airline_staff"):
+		app.logger.info(username)
+		cursor = conn.cursor()
+		query_2 = 'SELECT airline_name FROM airline_staff WHERE username = %s'
+		cursor.execute(query_2, (username))
+		data2 = cursor.fetchone()
+		query_3 = 'SELECT * FROM flight WHERE where airline_name = %s ORDER BY departure_time'
+		cursor.execute(query_1, (data2))
+		data1 = cursor.fetchone()
+		cursor.close()
+		return render_template('view_flights_customer.html', username=username, flights_result=data1)
+
 @app.route('/home')
 def home():
 	username = session['username']
