@@ -24,6 +24,10 @@
 	</br></br><br>
 	<a href="/logout">Logout</a>
 
+	{% for message in get_flashed_messages() %}
+        <h3>Error: {{ message }}</h3>
+    {% endfor %}
+
 </body>
 
 

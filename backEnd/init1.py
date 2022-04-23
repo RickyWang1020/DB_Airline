@@ -1,5 +1,5 @@
 # Import Flask Library
-from flask import Flask, render_template, request, session, url_for, redirect
+from flask import Flask, render_template, request, session, url_for, redirect, flash
 import pymysql.cursors
 import logging
 
@@ -48,22 +48,21 @@ def loginAuth():
 		# booking agent uses email to log in
 		query = 'SELECT * FROM booking_agent WHERE email = %s and password = MD5(%s)'
 	else:
-		error = 'Invalid usertype, please identify your usertype'
-		return render_template('login.html', error=error)
+		flash("Invalid usertype, please identify your usertype")
+		return redirect(url_for("login"))
 	cursor.execute(query, (logname, password))
 	# stores the results in a variable
 	data = cursor.fetchone()
 	# use fetchall() if you are expecting more than 1 data row
 	cursor.close()
-	error = None
 	if (data):
 		session['logname'] = logname
 		session['usertype'] = usertype
 		return redirect(url_for('home'))
 	else:
 		# returns an error message to the html page
-		error = 'Invalid username or password'
-		return render_template('login.html', error=error)
+		flash("Invalid username or password")
+		return redirect(url_for("login"))
 
 ### Register Operations ###
 # Define route for register
@@ -107,11 +106,10 @@ def registerCustomerAuth():
 	# stores the results in a variable
 	data = cursor.fetchone()
 	# use fetchall() if you are expecting more than 1 data row
-	error = None
 	if (data):
 		# If the previous query returns data, then user exists
-		error = "This user already exists"
-		return render_template('register.html', error = error)
+		flash("This user already exists")
+		return render_template('register_customer.html')
 	else:
 		ins = 'INSERT INTO customer VALUES(%s, %s, MD5(%s), %s, %s, %s, %s, %s, %s, %s, %s, %s)'
 		cursor.execute(ins, (email, name, password, building_number, street, city, state, phone_number, passport_number, passport_expiration, passport_country, date_of_birth))
@@ -134,11 +132,10 @@ def registerBookingAgentAuth():
 	#stores the results in a variable
 	data = cursor.fetchone()
 	#use fetchall() if you are expecting more than 1 data row
-	error = None
 	if (data):
 		#If the previous query returns data, then user exists
-		error = "This user already exists"
-		return render_template('register.html', error = error)
+		flash("This user already exists")
+		return render_template('register_booking_agent.html')
 	else:
 		ins = 'INSERT INTO booking_agent VALUES(%s, MD5(%s), %s)'
 		cursor.execute(ins, (email, password, booking_agent_id))
@@ -166,14 +163,13 @@ def registerAirlineStaffAuth():
 	query_2 = 'SELECT * FROM airline WHERE airline_name = %s'
 	cursor.execute(query_2, (airline_name))
 	data_2 = cursor.fetchone()
-	error = None
 	if (data_1):
 		# If the previous query returns data, then user exists
-		error = "This user already exists"
-		return render_template('register.html', error = error)
+		flash("This user already exists")
+		return render_template('register_airline_staff.html')
 	elif (not data_2):
-		error = "No such airline"
-		return render_template('register.html', error=error)
+		flash("No such airline")
+		return render_template('register_airline_staff.html')
 	else:
 		ins = 'INSERT INTO airline_staff VALUES(%s, MD5(%s), %s, %s, %s, %s)'
 		cursor.execute(ins, (username, password, first_name, last_name, date_of_birth, airline_name))
@@ -216,19 +212,14 @@ def home():
 ### Airline Staff Functions ###
 
 # a helper function to check the staff's permission
-def check_permission(perm_to_check):
+def check_permission(username, perm_to_check):
 	# the perm_to_check is either 'admin' or 'operator'
-	username = session['logname']
 	cursor = conn.cursor()
-	query = 'SELECT username, permission_type FROM permission WHERE username = %s'
-	cursor.execute(query, (username))
+	query = 'SELECT username, permission_type FROM permission WHERE username = %s AND permission_type = %s'
+	cursor.execute(query, (username, perm_to_check))
 	data = cursor.fetchall()
 	cursor.close()
-	assert 0 <= len(data) <= 2
-	# check in the fetched data: does the user have the permission that we want to check?
-	if (len(data) == 2) and (data[0]["permission_type"] == perm_to_check or data[1]["permission_type"] == perm_to_check):
-		return True
-	elif (len(data) == 1) and (data[0]["permission_type"] == perm_to_check):
+	if (data):
 		return True
 	else:
 		return False
@@ -249,7 +240,12 @@ def airline_staff_view_my_flights():
 # create new flights: for admin staff
 @app.route("/home/airline_staff_create_new_flight", methods=['GET', 'POST'])
 def airline_staff_create_new_flight():
-	pass
+	username = session['logname']
+	is_admin = check_permission(username, 'admin')
+	if (not is_admin):
+		flash("Unauthorized Operation: You do not have Admin Permission!")
+		return redirect(url_for("home"))
+		
 
 # change flight status: for operator staff
 @app.route("/home/airline_staff_change_flight_status")
