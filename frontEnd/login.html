@@ -13,9 +13,10 @@
 	<input type="text" name = "logname" placeholder="Email or Username" required/> </br>
 	<input type="password" name = "password" placeholder="Password" required/></br>
 	<input type="submit" value = Login />
-	{% if error %}
-		<p class="error"><strong>Error:</strong> {{error}}</p>
-	{% endif %}
+
+	{% for message in get_flashed_messages() %}
+        <h3>Error: {{ message }}</h3>
+    {% endfor %}
 </form>
 
 <a href="/">Go back</a>
