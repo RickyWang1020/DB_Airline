@@ -20,6 +20,7 @@ conn = pymysql.connect(host='localhost',
 def hello():
 	return render_template('index.html')
 
+### Login Operations ###
 # Define route for login
 @app.route('/login')
 def login():
@@ -31,36 +32,40 @@ def loginAuth():
 	# grabs information from the forms
 	usertype = request.form.get('usertype')
 	app.logger.info(usertype)
-	username = request.form['username']
+	logname = request.form['logname'] # the logname means email (for customer, agent) or username (for airline staff)
 	password = request.form['password']
 
 	# cursor used to send queries
 	cursor = conn.cursor()
 	# executes query
 	if (str(usertype) == "customer"):
-		query = 'SELECT * FROM customer WHERE name = %s and password = MD5(%s)'
+		# customer uses email to log in
+		query = 'SELECT * FROM customer WHERE email = %s and password = MD5(%s)'
 	elif (str(usertype) == "airline_staff"):
-		query = 'SELECT * FROM airline_staff WHERE name = %s and password = MD5(%s)'
+		# airline staff uses username to log in
+		query = 'SELECT * FROM airline_staff WHERE username = %s and password = MD5(%s)'
 	elif (str(usertype) == "booking_agent"):
-		query = 'SELECT * FROM booking_agent WHERE name = %s and password = MD5(%s)'
+		# booking agent uses email to log in
+		query = 'SELECT * FROM booking_agent WHERE email = %s and password = MD5(%s)'
 	else:
 		error = 'Invalid usertype, please identify your usertype'
 		return render_template('login.html', error=error)
-	cursor.execute(query, (username, password))
+	cursor.execute(query, (logname, password))
 	# stores the results in a variable
 	data = cursor.fetchone()
 	# use fetchall() if you are expecting more than 1 data row
 	cursor.close()
 	error = None
 	if (data):
-		session['username'] = username
+		session['logname'] = logname
 		session['usertype'] = usertype
 		return redirect(url_for('home'))
 	else:
 		# returns an error message to the html page
-		error = 'Invalid login or username'
+		error = 'Invalid username or password'
 		return render_template('login.html', error=error)
 
+### Register Operations ###
 # Define route for register
 @app.route('/register')
 def register():
@@ -94,7 +99,6 @@ def registerCustomerAuth():
 	passport_expiration = request.form['passport_expiration']
 	passport_country = request.form['passport_country']
 	date_of_birth = request.form['date_of_birth']
-	# app.logger.info(role)
 	# cursor used to send queries
 	cursor = conn.cursor()
 	# executes query
@@ -122,7 +126,6 @@ def registerBookingAgentAuth():
 	email = request.form['email']
 	password = request.form['password']
 	booking_agent_id = request.form['booking_agent_id']
-	# app.logger.info(role)
 	#cursor used to send queries
 	cursor = conn.cursor()
 	#executes query
@@ -153,27 +156,22 @@ def registerAirlineStaffAuth():
 	last_name = request.form['last_name']
 	date_of_birth = request.form['date_of_birth']
 	airline_name = request.form['airline_name']
-	# app.logger.info(role)
-	# cursor used to send queries
 	cursor = conn.cursor()
-	# executes query
 	query_1 = 'SELECT * FROM airline_staff WHERE username = %s'
-	cursor.execute(query, (username))
+	cursor.execute(query_1, (username))
 	# stores the results in a variable
 	data_1 = cursor.fetchone()
 	# use fetchall() if you are expecting more than 1 data row
 	# executes query
 	query_2 = 'SELECT * FROM airline WHERE airline_name = %s'
-	cursor.execute(query, (airline_name))
-	# stores the results in a variable
+	cursor.execute(query_2, (airline_name))
 	data_2 = cursor.fetchone()
-	# use fetchall() if you are expecting more than 1 data row
 	error = None
-	if (data1):
+	if (data_1):
 		# If the previous query returns data, then user exists
 		error = "This user already exists"
 		return render_template('register.html', error = error)
-	elif (not data2):
+	elif (not data_2):
 		error = "No such airline"
 		return render_template('register.html', error=error)
 	else:
@@ -185,70 +183,93 @@ def registerAirlineStaffAuth():
 
 @app.route('/home')
 def home():
-	username = session['username']
+	logname = session['logname']
 	usertype = session['usertype']
 
+	# get the customer's information and enter the customer's home page
 	if (usertype == "customer"):
-		app.logger.info(username)
+		app.logger.info("Customer: %s", logname)
 		cursor = conn.cursor()
-		query = 'SELECT name, email FROM customer WHERE name = %s'
-		cursor.execute(query, (username))
-		data1 = cursor.fetchone()
+		query = 'SELECT * FROM customer WHERE email = %s'
+		cursor.execute(query, (logname))
+		customer_data = cursor.fetchone()
 		cursor.close()
-		return render_template('home.html', username=username, posts=data1)
+		customer_name = customer_data["name"]
+		return render_template('home_customer.html', name=customer_name, data=customer_data)
+	# get the airline staff's information and enter the airlie staff's home page
 	elif (usertype == "airline_staff"):
-		app.logger.info(username)
+		app.logger.info("Airline staff: %s", logname)
 		cursor = conn.cursor()
-		query = 'SELECT name, email FROM airline_staff WHERE name = %s'
-		cursor.execute(query, (username))
-		data1 = cursor.fetchone()
+		query = 'SELECT first_name, last_name FROM airline_staff WHERE username = %s'
+		cursor.execute(query, (logname))
+		airline_staff_data = cursor.fetchone()
 		cursor.close()
-		return render_template('home.html', username=username, posts=data1)
+		staff_name = airline_staff_data["first_name"] + " " + airline_staff_data["last_name"]
+		return render_template('home_airline_staff.html', name=staff_name)
+	# get the booking agent's information and enter the booking agent's home page
 	elif (usertype == "booking_agent"):
-		app.logger.info(username)
-		cursor = conn.cursor()
-		query = 'SELECT name, email FROM booking_agent WHERE name = %s'
-		cursor.execute(query, (username))
-		data1 = cursor.fetchone()
-		cursor.close()
-		return render_template('home.html', username=username, posts=data1)
+		app.logger.info("Booking agent: %s", logname)
+		return render_template('home_booking_agent.html', name=logname)
+	else:
+		return redirect('/')
 
-    # cursor = conn.cursor();
-    # query = 'SELECT ts, blog_post FROM blog WHERE username = %s ORDER BY ts DESC'
-    # cursor.execute(query, (username))
-    # data1 = cursor.fetchall() 
-    # for each in data1:
-    #     print(each['blog_post'])
-    # cursor.close()
-    # return render_template('home.html', username=username, posts=data1)
+### Airline Staff Functions ###
 
-@app.route('/customerHome')
-def customer_home():
-	username = session['username']
+# a helper function to check the staff's permission
+def check_permission(perm_to_check):
+	# the perm_to_check is either 'admin' or 'operator'
+	username = session['logname']
 	cursor = conn.cursor()
-	query = 'SELECT name, email FROM customer WHERE name = %s'
+	query = 'SELECT username, permission_type FROM permission WHERE username = %s'
 	cursor.execute(query, (username))
-	data1 = cursor.fetchone() 
-	app.logger.info(data1)
-	print(data1['name'], data1['email'])
+	data = cursor.fetchall()
 	cursor.close()
-	return render_template('home.html', username=username, posts=data1)
+	assert 0 <= len(data) <= 2
+	# check in the fetched data: does the user have the permission that we want to check?
+	if (len(data) == 2) and (data[0]["permission_type"] == perm_to_check or data[1]["permission_type"] == perm_to_check):
+		return True
+	elif (len(data) == 1) and (data[0]["permission_type"] == perm_to_check):
+		return True
+	else:
+		return False
 
-		
-@app.route('/post', methods=['GET', 'POST'])
-def post():
-	username = session['username']
-	cursor = conn.cursor();
-	blog = request.form['blog']
-	query = 'INSERT INTO blog (blog_post, username) VALUES(%s, %s)'
-	cursor.execute(query, (blog, username))
-	conn.commit()
+# view my flights
+@app.route("/home/airline_staff_view_my_flights")
+def airline_staff_view_my_flights():
+	# Defaults will be showing all the upcoming flights operated by the airline he/she works for the next 30 days. 
+	# He/she will be able to see all the current/future/past flights operated by the airline he/she works for based on range of dates, 
+	# source/destination airports/city etc. 
+	# He/she will be able to see all the customers of a particular flight.
+	username = session['logname']
+	cursor = conn.cursor()
+
 	cursor.close()
-	return redirect(url_for('home'))
+	pass
 
+# create new flights: for admin staff
+@app.route("/home/airline_staff_create_new_flight", methods=['GET', 'POST'])
+def airline_staff_create_new_flight():
+	pass
+
+# change flight status: for operator staff
+@app.route("/home/airline_staff_change_flight_status")
+def airline_staff_change_flight_status():
+	pass
+
+# add airplane: for admin staff
+@app.route("/home/airline_staff_add_airplane", methods=['GET', 'POST'])
+def airline_staff_add_airplane():
+	pass
+
+# add airport: for admin staff
+@app.route("/home/airline_staff_add_airport", methods=['GET', 'POST'])
+def airline_staff_add_airport():
+	pass
+
+### Logout Operation ###
 @app.route('/logout')
 def logout():
-	session.pop('username')
+	session.pop('logname')
 	session.pop('usertype')
 	return redirect('/')
 		
