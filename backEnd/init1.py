@@ -40,13 +40,13 @@ def loginAuth():
 	# executes query
 	if (str(usertype) == "customer"):
 		# customer uses email to log in
-		query = 'SELECT * FROM customer WHERE email = %s and password = MD5(%s)'
+		query = 'SELECT * FROM customer WHERE email = %s and password = MD5(%s);'
 	elif (str(usertype) == "airline_staff"):
 		# airline staff uses username to log in
-		query = 'SELECT * FROM airline_staff WHERE username = %s and password = MD5(%s)'
+		query = 'SELECT * FROM airline_staff WHERE username = %s and password = MD5(%s);'
 	elif (str(usertype) == "booking_agent"):
 		# booking agent uses email to log in
-		query = 'SELECT * FROM booking_agent WHERE email = %s and password = MD5(%s)'
+		query = 'SELECT * FROM booking_agent WHERE email = %s and password = MD5(%s);'
 	else:
 		flash("Invalid usertype, please identify your usertype")
 		return redirect(url_for("login"))
@@ -101,7 +101,7 @@ def registerCustomerAuth():
 	# cursor used to send queries
 	cursor = conn.cursor()
 	# executes query
-	query = 'SELECT * FROM customer WHERE email = %s'
+	query = 'SELECT * FROM customer WHERE email = %s;'
 	cursor.execute(query, (email))
 	# stores the results in a variable
 	data = cursor.fetchone()
@@ -111,7 +111,7 @@ def registerCustomerAuth():
 		flash("This user already exists")
 		return render_template('register_customer.html')
 	else:
-		ins = 'INSERT INTO customer VALUES(%s, %s, MD5(%s), %s, %s, %s, %s, %s, %s, %s, %s, %s)'
+		ins = 'INSERT INTO customer VALUES(%s, %s, MD5(%s), %s, %s, %s, %s, %s, %s, %s, %s, %s);'
 		cursor.execute(ins, (email, name, password, building_number, street, city, state, phone_number, passport_number, passport_expiration, passport_country, date_of_birth))
 		conn.commit()
 		cursor.close()
@@ -127,7 +127,7 @@ def registerBookingAgentAuth():
 	#cursor used to send queries
 	cursor = conn.cursor()
 	#executes query
-	query = 'SELECT * FROM booking_agent WHERE email = %s'
+	query = 'SELECT * FROM booking_agent WHERE email = %s;'
 	cursor.execute(query, (email))
 	#stores the results in a variable
 	data = cursor.fetchone()
@@ -137,7 +137,7 @@ def registerBookingAgentAuth():
 		flash("This user already exists")
 		return render_template('register_booking_agent.html')
 	else:
-		ins = 'INSERT INTO booking_agent VALUES(%s, MD5(%s), %s)'
+		ins = 'INSERT INTO booking_agent VALUES(%s, MD5(%s), %s);'
 		cursor.execute(ins, (email, password, booking_agent_id))
 		conn.commit()
 		cursor.close()
@@ -154,13 +154,13 @@ def registerAirlineStaffAuth():
 	date_of_birth = request.form['date_of_birth']
 	airline_name = request.form['airline_name']
 	cursor = conn.cursor()
-	query_1 = 'SELECT * FROM airline_staff WHERE username = %s'
+	query_1 = 'SELECT * FROM airline_staff WHERE username = %s;'
 	cursor.execute(query_1, (username))
 	# stores the results in a variable
 	data_1 = cursor.fetchone()
 	# use fetchall() if you are expecting more than 1 data row
 	# executes query
-	query_2 = 'SELECT * FROM airline WHERE airline_name = %s'
+	query_2 = 'SELECT * FROM airline WHERE airline_name = %s;'
 	cursor.execute(query_2, (airline_name))
 	data_2 = cursor.fetchone()
 	if (data_1):
@@ -171,7 +171,7 @@ def registerAirlineStaffAuth():
 		flash("No such airline")
 		return render_template('register_airline_staff.html')
 	else:
-		ins = 'INSERT INTO airline_staff VALUES(%s, MD5(%s), %s, %s, %s, %s)'
+		ins = 'INSERT INTO airline_staff VALUES(%s, MD5(%s), %s, %s, %s, %s);'
 		cursor.execute(ins, (username, password, first_name, last_name, date_of_birth, airline_name))
 		conn.commit()
 		cursor.close()
@@ -186,7 +186,7 @@ def home():
 	if (usertype == "customer"):
 		app.logger.info("Customer: %s", logname)
 		cursor = conn.cursor()
-		query = 'SELECT * FROM customer WHERE email = %s'
+		query = 'SELECT * FROM customer WHERE email = %s;'
 		cursor.execute(query, (logname))
 		customer_data = cursor.fetchone()
 		cursor.close()
@@ -196,7 +196,7 @@ def home():
 	elif (usertype == "airline_staff"):
 		app.logger.info("Airline staff: %s", logname)
 		cursor = conn.cursor()
-		query = 'SELECT first_name, last_name FROM airline_staff WHERE username = %s'
+		query = 'SELECT first_name, last_name FROM airline_staff WHERE username = %s;'
 		cursor.execute(query, (logname))
 		airline_staff_data = cursor.fetchone()
 		cursor.close()
@@ -215,7 +215,7 @@ def home():
 def check_permission(username, perm_to_check):
 	# the perm_to_check is either 'admin' or 'operator'
 	cursor = conn.cursor()
-	query = 'SELECT username, permission_type FROM permission WHERE username = %s AND permission_type = %s'
+	query = 'SELECT username, permission_type FROM permission WHERE username = %s AND permission_type = %s;'
 	cursor.execute(query, (username, perm_to_check))
 	data = cursor.fetchall()
 	cursor.close()
@@ -235,7 +235,7 @@ def airline_staff_view_my_flights():
 	cursor = conn.cursor()
 
 	# get the airline name that the staff belongs to
-	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s"
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
 	cursor.execute(query_1, (username))
 	airline_name = cursor.fetchone()
 	app.logger.info("airline name is %s", airline_name)
@@ -309,7 +309,7 @@ def airline_staff_view_my_flights():
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_2 += time_range_statement
 	query_2 += "GROUP BY airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id\
-		ORDER BY departure_time, arrival_time"
+		ORDER BY departure_time, arrival_time;"
 	app.logger.info("the query for flight is: %s", query_2)
 	cursor.execute(query_2, (airline_name["airline_name"]))
 	flights = cursor.fetchall()
@@ -326,6 +326,87 @@ def airline_staff_create_new_flight():
 	if (not is_admin):
 		flash("Unauthorized Operation: You do not have Admin Permission!")
 		return redirect(url_for("home"))
+
+	# display the existing flight information
+	# get the airline name that the staff belongs to
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
+	app.logger.info("airline name is %s", airline_name)
+
+	error = None
+	# receive the inputs of creating a new flight
+	if request.method == "POST":
+		flight_num = request.form["flight_num"]
+		airplane_id = request.form["airplane_id"]
+		departure_airport = request.form["departure_airport"]
+		departure_time = request.form["departure_time"]
+		arrival_airport = request.form["arrival_airport"]
+		arrival_time = request.form["arrival_time"]
+		price = request.form["price"]
+		status = request.form["status"]
+
+		# first check if there the given flight_num already exists
+		q1 = "SELECT airline_name, flight_num FROM flight WHERE airline_name = %s AND flight_num = %s;"
+		app.logger.info("the query is: %s", q1)
+		cursor.execute(q1, (airline_name, flight_num))
+		d1 = cursor.fetchone()
+		if (d1):
+			# If the previous query returns data, then the flight exists
+			flash("This flight already exists!")
+			error = True
+		
+		# then check if this airline really has this airplane (id)
+		q2 = "SELECT airline_name, airplane_id FROM airplane NATURAL JOIN flight WHERE airline_name = %s AND airplane_id = %s;"
+		cursor.execute(q2, (airline_name, airplane_id))
+		d2 = cursor.fetchone()
+		if (not d2):
+			# If the previous query returns nothing, then the airplane is invalid
+			flash("Your Airline DOES NOT have this Airplane!")
+			error = True
+		
+		# then check if the departure airport and arrival airport exist, and not the same
+		if departure_airport == arrival_airport:
+			flash("Departure airport CANNOT be the same as Arrival airport!")
+			error = True
+		q3 = "SELECT * FROM airport WHERE airport_name = %s"
+		cursor.execute(q3, (departure_airport))
+		d3_d = cursor.fetchone()
+		cursor.execute(q3, (arrival_airport))
+		d3_a = cursor.fetchone()
+		# only if both queries have result, it means the airports are valid
+		if (not d3_d):
+			flash("The Departure Airport Code is Invalid!")
+			error = True
+		if (not d3_a):
+			flash("The Arrival Airport Code is Invalid!")
+			error = True
+
+		# then check if departure time is ahead of arrival time
+		app.logger.info("depart: %s, arrival: %s, type: %s", departure_time, arrival_time, type(departure_time))
+		if (departure_time >= arrival_time):
+			flash("The Departure Time CANNOT be Later than the Arrival Time!")
+	
+		# if there is no detected error, then add the new flight to database
+		if (not error):
+			ins = "INSERT INTO flight VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s);"
+			cursor.execute(ins, (airline_name, flight_num, departure_airport, departure_time.replace("T", " "), arrival_airport, arrival_time.replace("T", " "), price, status, airplane_id))
+			conn.commit()
+			flash("You have added the Flight into the System!")
+	
+	# default: get the upcoming flights of the airline for the next 30 days
+	query_2 = "SELECT airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id, GROUP_CONCAT(customer_email SEPARATOR ', ') as customers \
+		FROM flight NATURAL LEFT OUTER JOIN (ticket NATURAL JOIN purchases) \
+		WHERE airline_name = %s AND (departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')) \
+		GROUP BY airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id\
+		ORDER BY departure_time, arrival_time;"
+	app.logger.info("the query for flight is: %s", query_2)
+	cursor.execute(query_2, (airline_name))
+	flights = cursor.fetchall()
+	cursor.close()
+	return render_template("airline_staff_create_new_flight.html", flights=flights, error=error)
 
 # change flight status: for operator staff
 @app.route("/home/airline_staff_change_flight_status")
