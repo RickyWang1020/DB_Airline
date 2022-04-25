@@ -350,7 +350,6 @@ def airline_staff_create_new_flight():
 
 		# first check if there the given flight_num already exists
 		q1 = "SELECT airline_name, flight_num FROM flight WHERE airline_name = %s AND flight_num = %s;"
-		app.logger.info("the query is: %s", q1)
 		cursor.execute(q1, (airline_name, flight_num))
 		d1 = cursor.fetchone()
 		if (d1):
@@ -385,9 +384,14 @@ def airline_staff_create_new_flight():
 			error = True
 
 		# then check if departure time is ahead of arrival time
-		app.logger.info("depart: %s, arrival: %s, type: %s", departure_time, arrival_time, type(departure_time))
 		if (departure_time >= arrival_time):
 			flash("The Departure Time CANNOT be Later than the Arrival Time!")
+			error = True
+		
+		# then check if the price is positive
+		if (int(price) <= 0):
+			flash("The Price MUST be Positive numbers!")
+			error = True
 	
 		# if there is no detected error, then add the new flight to database
 		if (not error):
@@ -416,12 +420,99 @@ def airline_staff_change_flight_status():
 # add airplane: for admin staff
 @app.route("/home/airline_staff_add_airplane", methods=['GET', 'POST'])
 def airline_staff_add_airplane():
-	pass
+	username = session['logname']
+	is_admin = check_permission(username, 'admin')
+	# if not admin, then refuse to do this
+	if (not is_admin):
+		flash("Unauthorized Operation: You do not have Admin Permission!")
+		return redirect(url_for("home"))
+
+	# get the airline name that the staff belongs to
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
+	app.logger.info("airline name is %s", airline_name)
+
+	error = None
+	# receive the inputs of creating a new plane
+	if request.method == "POST":
+		airplane_id = request.form["airplane_id"]
+		seats = request.form["seats"]
+
+		# first check if the airplane id already exists
+		q1 = "SELECT * FROM airplane WHERE airplane_id = %s;"
+		cursor.execute(q1, (airplane_id))
+		d1 = cursor.fetchone()
+		if (d1):
+			flash("This airplane already exists!")
+			error = True
+		
+		# then check if the airplane id is valid number
+		if (int(airplane_id) < 0):
+			flash("The Airplane ID MUST be Non-Negative numbers!")
+			error = True
+
+		# then check if the number of seats is valid number
+		if (int(seats) < 0):
+			flash("The Number of Seats MUST be Non-Negative numbers!")
+			error = True
+
+		# if there is no detected error, then add the new plane to database
+		if (not error):
+			ins = "INSERT INTO airplane VALUES(%s, %s, %s);"
+			cursor.execute(ins, (airline_name, airplane_id, seats))
+			conn.commit()
+			flash("You have added the Airplane into the System!")
+	
+	# display all the existing planes in the airline that the staff belongs to
+	query_2 = "SELECT * FROM airplane WHERE airline_name = %s ORDER BY airplane_id;"
+	app.logger.info("the query for airplane is: %s", query_2)
+	cursor.execute(query_2, (airline_name))
+	airplane = cursor.fetchall()
+	cursor.close()
+	return render_template("airline_staff_add_airplane.html", airline_name=airline_name, airplane=airplane, error=error)
 
 # add airport: for admin staff
 @app.route("/home/airline_staff_add_airport", methods=['GET', 'POST'])
 def airline_staff_add_airport():
-	pass
+	username = session['logname']
+	is_admin = check_permission(username, 'admin')
+	# if not admin, then refuse to do this
+	if (not is_admin):
+		flash("Unauthorized Operation: You do not have Admin Permission!")
+		return redirect(url_for("home"))
+
+	error = None
+	cursor = conn.cursor()
+	# receive the inputs of creating a new airport
+	if request.method == "POST":
+		airport_name = request.form["airport_name"]
+		airport_city = request.form["airport_city"]
+
+		# first check if the airport name already exists
+		q1 = "SELECT * FROM airport WHERE airport_name = %s;"
+		cursor.execute(q1, (airport_name))
+		d1 = cursor.fetchone()
+		if (d1):
+			flash("This airport already exists!")
+			error = True
+
+		# if there is no detected error, then add the new airport to database
+		if (not error):
+			ins = "INSERT INTO airport VALUES(%s, %s);"
+			cursor.execute(ins, (airport_name, airport_city))
+			conn.commit()
+			flash("You have added the Airport into the System!")
+	
+	# display all the existing planes in the airline that the staff belongs to
+	query_1 = "SELECT * FROM airport ORDER BY airport_name;"
+	cursor.execute(query_1)
+	airport = cursor.fetchall()
+	cursor.close()
+	return render_template("airline_staff_add_airport.html", airport=airport, error=error)
+
 
 ### Logout Operation ###
 @app.route('/logout')

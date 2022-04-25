@@ -1,0 +1,46 @@
+<html>
+<head>
+</head>
+<body>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
+
+<h2>Add a New Airplane for Your Airline</h2>
+
+<h3> Existing Airplanes in Your Airline: {{airline_name}} </h3>
+<table>
+    <th>Airplane ID</th>
+    <th>Number of Seats</th>
+
+    {% for line in airplane %}
+	<tr>
+		<td>{{line['airplane_id']}}</td>
+		<td>{{line['seats']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+<h3> Fill in Information for the New Airplane:</h3>
+<form action="/home/airline_staff_add_airplane" method="POST">
+    <input type="number" name = "airplane_id" placeholder="Airplane ID" required/> </br>
+    <input type="number" name = "seats" placeholder="Number of Seats" required/> </br>
+    <input type="submit" value = Add />
+
+    {% if error %}
+        {% for message in get_flashed_messages() %}
+        <h3>Error: {{ message }}</h3>
+        {% endfor %}
+    {% else %}
+        {% for message in get_flashed_messages() %}
+        <h3>Success! {{ message }}</h3>
+        {% endfor %}
+    {% endif %}
+</form>
+
+</br>
+<a href="/home">Go back</a>
+</body>
+</html>
