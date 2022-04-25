@@ -1,0 +1,122 @@
+<html>
+<head>
+</head>
+<body>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
+
+<h2>Change Flight Status</h2>
+
+<h3> Current Flights: </h3>
+<h4>Upcoming Flights: </h4>
+<table>
+    <th>Airline Name</th>
+	<th>Flight Number</th>
+    <th>Airplane ID</th>
+    <th>Departure Airport</th>
+    <th>Arrival Airport</th>
+    <th>Departure Time</th>
+    <th>Arrival Time</th>
+    <th>Price</th>
+    <th>Onboarding Customers</th>
+
+    {% for line in upcoming_flights %}
+	<tr>
+		<td>{{line['airline_name']}}</td>
+		<td>{{line['flight_num']}}</td>
+		<td>{{line['airplane_id']}}</td>
+		<td>{{line['departure_airport']}}</td>
+		<td>{{line['arrival_airport']}}</td>
+		<td>{{line['departure_time']}}</td>
+		<td>{{line['arrival_time']}}</td>
+		<td>{{line['price']}}</td>
+		<td>{{line['customers']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+<h4>In-progress Flights: </h4>
+<table>
+    <th>Airline Name</th>
+	<th>Flight Number</th>
+    <th>Airplane ID</th>
+    <th>Departure Airport</th>
+    <th>Arrival Airport</th>
+    <th>Departure Time</th>
+    <th>Arrival Time</th>
+    <th>Price</th>
+    <th>Onboarding Customers</th>
+
+    {% for line in progress_flights %}
+	<tr>
+		<td>{{line['airline_name']}}</td>
+		<td>{{line['flight_num']}}</td>
+		<td>{{line['airplane_id']}}</td>
+		<td>{{line['departure_airport']}}</td>
+		<td>{{line['arrival_airport']}}</td>
+		<td>{{line['departure_time']}}</td>
+		<td>{{line['arrival_time']}}</td>
+		<td>{{line['price']}}</td>
+		<td>{{line['customers']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+<h4>Delayed Flights: </h4>
+<table>
+    <th>Airline Name</th>
+	<th>Flight Number</th>
+    <th>Airplane ID</th>
+    <th>Departure Airport</th>
+    <th>Arrival Airport</th>
+    <th>Departure Time</th>
+    <th>Arrival Time</th>
+    <th>Price</th>
+    <th>Onboarding Customers</th>
+
+    {% for line in delayed_flights %}
+	<tr>
+		<td>{{line['airline_name']}}</td>
+		<td>{{line['flight_num']}}</td>
+		<td>{{line['airplane_id']}}</td>
+		<td>{{line['departure_airport']}}</td>
+		<td>{{line['arrival_airport']}}</td>
+		<td>{{line['departure_time']}}</td>
+		<td>{{line['arrival_time']}}</td>
+		<td>{{line['price']}}</td>
+		<td>{{line['customers']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+<h3> Change a Flight's Status:</h3>
+<form action="/home/airline_staff_change_flight_status" method="POST">
+    <input type="number" name = "flight_num" placeholder="Flight Number" required/> </br>
+    <select name="status">
+		<option value="">--Change Flight Status--</option>
+		<option value="Upcoming">Upcoming</option>
+		<option value="In-progress">In-progress</option>
+		<option value="Delayed">Delayed</option>
+	</select>
+    <br>
+    <input type="submit" value = Add />
+
+    {% if error %}
+        {% for message in get_flashed_messages() %}
+        <h3>Error: {{ message }}</h3>
+        {% endfor %}
+    {% else %}
+        {% for message in get_flashed_messages() %}
+        <h3>Success! {{ message }}</h3>
+        {% endfor %}
+    {% endif %}
+</form>
+
+
+</br>
+<a href="/home">Go back</a>
+</body>
+</html>

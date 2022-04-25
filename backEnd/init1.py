@@ -413,9 +413,79 @@ def airline_staff_create_new_flight():
 	return render_template("airline_staff_create_new_flight.html", flights=flights, error=error)
 
 # change flight status: for operator staff
-@app.route("/home/airline_staff_change_flight_status")
+@app.route("/home/airline_staff_change_flight_status", methods=['GET', 'POST'])
 def airline_staff_change_flight_status():
-	pass
+	username = session['logname']
+	is_op = check_permission(username, 'operator')
+	# if not operator, then refuse to do this
+	if (not is_op):
+		flash("Unauthorized Operation: You do not have Operator Permission!")
+		return redirect(url_for("home"))
+	
+	# display the existing flight information
+	# get the airline name that the staff belongs to
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
+	app.logger.info("airline name is %s", airline_name)
+
+	error = None
+	# receive the inputs of updating a flight status
+	if request.method == "POST":
+		flight_num = request.form["flight_num"]
+		status = request.form["status"]
+
+		# first check if the flight number is valid
+		q1 = "SELECT airline_name, flight_num FROM flight WHERE airline_name = %s AND flight_num = %s;"
+		cursor.execute(q1, (airline_name, flight_num))
+		d1 = cursor.fetchone()
+		if (not d1):
+			flash("Invalid Flight Number!")
+			error = True
+
+		# then check if the status is duplicated as before
+		q2 = "SELECT status FROM flight WHERE airline_name = %s AND flight_num = %s;"
+		cursor.execute(q2, (airline_name, flight_num))
+		d2 = cursor.fetchone()
+		if d2 and d2["status"] == status:
+			flash("This Flight #{} already has status {}, NO need to change!".format(flight_num, status))
+			error = True
+
+		# if there is no detected error, then add the new flight to database
+		if (not error):
+			update = "UPDATE flight SET status = %s WHERE flight_num = %s;"
+			cursor.execute(update, (status, flight_num))
+			conn.commit()
+			flash("You have updated the status of Flight #{} as {}!".format(flight_num, status))
+
+	# get all the upcoming, in-progress and delayed flights and list them
+	query_2_upcoming = "SELECT airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, airplane_id, GROUP_CONCAT(customer_email SEPARATOR ', ') as customers \
+		FROM flight NATURAL LEFT OUTER JOIN (ticket NATURAL JOIN purchases) \
+		WHERE airline_name = %s AND status = \'Upcoming\' \
+		GROUP BY airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, airplane_id\
+		ORDER BY departure_time, arrival_time;"
+	cursor.execute(query_2_upcoming, (airline_name))
+	upcoming_flights = cursor.fetchall()
+
+	query_2_progress = "SELECT airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, airplane_id, GROUP_CONCAT(customer_email SEPARATOR ', ') as customers \
+		FROM flight NATURAL LEFT OUTER JOIN (ticket NATURAL JOIN purchases) \
+		WHERE airline_name = %s AND status = \'In-progress\' \
+		GROUP BY airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, airplane_id\
+		ORDER BY departure_time, arrival_time;"
+	cursor.execute(query_2_progress, (airline_name))
+	progress_flights = cursor.fetchall()
+
+	query_2_delayed = "SELECT airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, airplane_id, GROUP_CONCAT(customer_email SEPARATOR ', ') as customers \
+		FROM flight NATURAL LEFT OUTER JOIN (ticket NATURAL JOIN purchases) \
+		WHERE airline_name = %s AND status = \'Delayed\' \
+		GROUP BY airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, airplane_id\
+		ORDER BY departure_time, arrival_time;"
+	cursor.execute(query_2_delayed, (airline_name))
+	delayed_flights = cursor.fetchall()
+	cursor.close()
+	return render_template("airline_staff_change_flight_status.html", upcoming_flights=upcoming_flights, progress_flights=progress_flights, delayed_flights=delayed_flights, error=error)
 
 # add airplane: for admin staff
 @app.route("/home/airline_staff_add_airplane", methods=['GET', 'POST'])
