@@ -502,11 +502,11 @@ def booking_agent_search_for_flights():
 	# He/she will be able to see all the customers of a particular flight.
 	cursor = conn.cursor()
 	cur_time = str(datetime.now())
-	cur_date = time.split()[0]
+	cur_date = cur_time.split()[0]
 	# default: get the upcoming flights of the airline for the next 30 days
 	query_1 = "SELECT * \
 		FROM flight "
-	time_range_statement = "WHERE departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')) "
+	time_range_statement = "WHERE departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
 
 	# get source/destination airports/city, for customized selections
 	query_2 = "SELECT DISTINCT f.departure_airport AS depart_airport, a.airport_city AS departure_city FROM flight f JOIN airport a ON (f.departure_airport = a.airport_name)"
@@ -570,8 +570,7 @@ def booking_agent_search_for_flights():
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
-	query_1 += "GROUP BY airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id\
-		ORDER BY departure_time, arrival_time;"
+	query_1 += "ORDER BY airline_name, departure_time, arrival_time;"
 	app.logger.info("the query for flight is: %s", query_1)
 	cursor.execute(query_1)
 	flights = cursor.fetchall()

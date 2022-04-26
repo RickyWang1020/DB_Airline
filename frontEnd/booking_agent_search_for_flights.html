@@ -12,10 +12,10 @@
 <h3> Filters: </h3>
 <form action="/home/booking_agent_search_for_flights" method="POST">
     <label for="start">Departure date starts from:</label>
-    <input type="date" name="range_start" min=cur_date>
+    <input type="date" name="range_start" onfocus="this.min=new Date().toISOString().split('T')[0]" />
     </br>
-    <label for="end">Arrival date ends at:</label>
-    <input type="date" name="range_end" min=cur_date>
+    <label for="end">Departure date ends at:</label>
+    <input type="date" name="range_end" onfocus="this.min=new Date().toISOString().split('T')[0]">
 
     <p>
         <label for="departure">Departure City and Airport:</label>
