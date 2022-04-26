@@ -38,6 +38,8 @@
 
 <h3> Search Results: </h3>
 <table>
+    <th>Customer Email</th>
+    <th>Customer Name</th>
     <th>Ticket ID</th>
     <th>Airline Name</th>
 	<th>Flight Number</th>
@@ -51,6 +53,8 @@
 
     {% for line in flights %}
 	<tr>
+        <td>{{line['customer_email']}}</td>
+        <td>{{line['customer_name']}}</td>
         <td>{{line['ticket_id']}}</td>
 		<td>{{line['airline_name']}}</td>
 		<td>{{line['flight_num']}}</td>
