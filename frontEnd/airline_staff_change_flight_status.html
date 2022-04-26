@@ -95,7 +95,7 @@
 <h3> Change a Flight's Status:</h3>
 <form action="/home/airline_staff_change_flight_status" method="POST">
     <input type="number" name = "flight_num" placeholder="Flight Number" required/> </br>
-    <select name="status">
+    <select name="status" required>
 		<option value="">--Change Flight Status--</option>
 		<option value="Upcoming">Upcoming</option>
 		<option value="In-progress">In-progress</option>

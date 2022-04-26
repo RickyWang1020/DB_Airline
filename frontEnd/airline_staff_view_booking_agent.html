@@ -1,0 +1,57 @@
+<html>
+<head>
+</head>
+<body>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
+
+<h2>View Booking Agents</h2>
+
+<h3> Select the Period: </h3>
+<form action="/home/airline_staff_view_booking_agent" method="POST">
+    <select name="period" required>
+        <option value="">--Select Search Period--</option>
+        <option value="YEAR"> Recent 1 Year </option>
+        <option value="MONTH"> Recent 1 Month </option>
+	</select>
+    <input type="submit" value = Search />
+</form>
+
+<h3> Top 5 Booking Agents in the Recent {{period}}: </h3>
+<h4> Number of Tickets Sold </h4>
+<table>
+    <th>Booking Agent Email</th>
+    <th>Booking Agent ID</th>
+	<th>Number of Tickets</th>
+
+    {% for line in top_5_agent_ticket %}
+	<tr>
+		<td>{{line['booking_agent_email']}}</td>
+        <td>{{line['booking_agent_id']}}</td>
+		<td>{{line['number_of_tickets']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+<h4> Amount of Commission Earned </h4>
+<table>
+    <th>Booking Agent Email</th>
+    <th>Booking Agent ID</th>
+	<th>Commission Earned</th>
+
+    {% for line in top_5_agent_money %}
+	<tr>
+		<td>{{line['booking_agent_email']}}</td>
+        <td>{{line['booking_agent_id']}}</td>
+		<td>{{line['commission_earned']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+</br>
+<a href="/home">Go back</a>
+</body>
+</html>

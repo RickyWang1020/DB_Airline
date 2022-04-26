@@ -1,0 +1,84 @@
+<html>
+<head>
+</head>
+<body>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
+
+<h2>View Frequent Customers</h2>
+
+<h3> Top 5 Customers in the Recent Year: </h3>
+<h4> Number of Tickets Purchased </h4>
+<table>
+    <th>Customer Email</th>
+	<th>Number of Tickets</th>
+
+    {% for line in top_5_customer_num_ticket %}
+	<tr>
+		<td>{{line['customer_email']}}</td>
+		<td>{{line['number_of_tickets']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+<h4> Amount of Money Spent </h4>
+<table>
+    <th>Customer Email</th>
+	<th>Money Spent</th>
+
+    {% for line in top_5_customer_money %}
+	<tr>
+		<td>{{line['customer_email']}}</td>
+		<td>{{line['money_spent']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+<h3> Select the Customer You want to Inspect: </h3>
+<form action="/home/airline_staff_view_frequent_customer" method="POST">
+    <select name="selected_customer" required>
+        <option value="">--Select Customer Email--</option>
+        {% for c in customers %}
+        <option value={{loop.index0}}> {{c['customer_email']}} </option>
+        {% endfor %} 
+	</select>
+    <input type="submit" value = Search />
+
+    {% if info %}
+        <h4> Purchased Tickets of Customer: {{customer_email}} </h4>
+        <table>
+            <th>Purchase Date</th>
+            <th>Flight Number</th>
+            <th>Airplane ID</th>
+            <th>Departure Airport</th>
+            <th>Arrival Airport</th>
+            <th>Departure Time</th>
+            <th>Arrival Time</th>
+            <th>Price</th>
+            <th>Status</th>
+
+            {% for line in info %}
+            <tr>
+                <td>{{line['purchase_date']}}</td>
+                <td>{{line['flight_num']}}</td>
+                <td>{{line['airplane_id']}}</td>
+                <td>{{line['departure_airport']}}</td>
+                <td>{{line['arrival_airport']}}</td>
+                <td>{{line['departure_time']}}</td>
+                <td>{{line['arrival_time']}}</td>
+                <td>{{line['price']}}</td>
+                <td>{{line['status']}}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+</form>
+
+
+</br>
+<a href="/home">Go back</a>
+</body>
+</html>
