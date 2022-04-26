@@ -583,6 +583,58 @@ def airline_staff_add_airport():
 	cursor.close()
 	return render_template("airline_staff_add_airport.html", airport=airport, error=error)
 
+@app.route("/home/airline_staff_view_booking_agent", methods=['GET','POST'])
+def airline_staff_view_booking_agent():
+	pass
+
+@app.route("/home/airline_staff_view_frequent_customer", methods=['GET','POST'])
+def airline_staff_view_frequent_customer():
+	# get the airline name that the staff belongs to
+	username = session['logname']
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
+
+	# display the top 5 customers in the recent year
+	# by the number of tickets purchased and by the amout of money spent
+	query_2 = "SELECT p.customer_email AS customer_email, COUNT(t.ticket_id) AS number_of_tickets FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p \
+		WHERE airline_name = %s AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 YEAR) AND NOW()) \
+		GROUP BY customer_email ORDER BY number_of_tickets DESC LIMIT 5;"
+	cursor.execute(query_2, (airline_name))
+	top_5_customer_num_ticket = cursor.fetchall()
+	query_3 = "SELECT p.customer_email AS customer_email, SUM(f.price) AS money_spent FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p \
+		WHERE airline_name = %s AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 YEAR) AND NOW()) \
+		GROUP BY customer_email ORDER BY money_spent DESC LIMIT 5;"
+	cursor.execute(query_3, (airline_name))
+	top_5_customer_money = cursor.fetchall()
+	# select all the customers who have purchased a ticket, for the staff to select and view all tickets
+	query_4 = "SELECT DISTINCT customer_email FROM flight NATURAL JOIN ticket NATURAL JOIN purchases WHERE airline_name = %s ORDER BY customer_email;"
+	cursor.execute(query_4, (airline_name))
+	customers = cursor.fetchall()
+
+	info = None
+	customer_email = None
+	# receive the inputs of what customer the staff wants to check
+	if request.method == "POST":
+		selected_customer_idx = request.form["selected_customer"]
+		selected_customer_dict = customers[int(selected_customer_idx)]
+		customer_email = selected_customer_dict["customer_email"]
+		app.logger.info("the email is %s", customer_email)
+		# get all the purchased tickets of that customer
+		q1 = "SELECT purchase_date, flight_num, airplane_id, departure_airport, arrival_airport, departure_time, arrival_time, price, status \
+			FROM flight NATURAL JOIN ticket NATURAL JOIN purchases WHERE customer_email = %s ORDER BY purchase_date;"
+		cursor.execute(q1, (customer_email))
+		info = cursor.fetchall()
+
+	cursor.close()
+	return render_template("airline_staff_view_frequent_customer.html", top_5_customer_num_ticket=top_5_customer_num_ticket, top_5_customer_money=top_5_customer_money, customers=customers, info=info, customer_email=customer_email)
+
+
+@app.route("/home/airline_staff_view_top_destination", methods=['GET','POST'])
+def airline_staff_view_top_destination():
+	pass
 
 ### Logout Operation ###
 @app.route('/logout')
