@@ -8,14 +8,14 @@
 	}
 </style>
 
-<h2>View Your Flights</h2>
+<h2>Search For Flights</h2>
 <h3> Filters: </h3>
-<form action="/home/customer_view_my_flights" method="POST">
+<form action="/home/customer_search_for_flights" method="POST">
     <label for="start">Departure date starts from:</label>
-    <input type="date" name="range_start" min="1971-01-01">
+    <input type="date" name="range_start" min=cur_date>
     </br>
     <label for="end">Arrival date ends at:</label>
-    <input type="date" name="range_end" min="1971-01-01">
+    <input type="date" name="range_end" min=cur_date>
 
     <p>
         <label for="departure">Departure City and Airport:</label>
@@ -38,7 +38,6 @@
 
 <h3> Search Results: </h3>
 <table>
-    <th>Ticket ID</th>
     <th>Airline Name</th>
 	<th>Flight Number</th>
     <th>Departure Airport</th>
@@ -51,7 +50,6 @@
 
     {% for line in flights %}
 	<tr>
-        <td>{{line['ticket_id']}}</td>
 		<td>{{line['airline_name']}}</td>
 		<td>{{line['flight_num']}}</td>
 		<td>{{line['departure_airport']}}</td>
