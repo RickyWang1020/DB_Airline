@@ -12,13 +12,14 @@
 	<input type="text" name = "state" placeholder="state" required/></br>
 	<input type="number" name = "phone_number" placeholder="phone number" required/></br>
 	<input type="text" name = "passport_number" placeholder="passport number" required/></br>
-	<input type="date" name = "passport_expiration" placeholder="passport expiration" required/></br>
+	Passport expiration date: <input type="date" name = "passport_expiration" placeholder="passport expiration" required/></br>
 	<input type="text" name = "passport_country" placeholder="passport country" required/></br>
-	<input type="date" name = "date_of_birth" placeholder="date of birth" required/></br>
+	Date of birth: <input type="date" name = "date_of_birth" placeholder="date of birth" required/></br>
 	<input type="submit" value = Register />
-	{% if error %}
-		<p class="error"><strong>Error:</strong> {{error}}</p>
-	{% endif %}
+	
+	{% for message in get_flashed_messages() %}
+        <h3>Error: {{ message }}</h3>
+    {% endfor %}
 </form>
 <a href="/">Go back</a>
 </body>

@@ -1,9 +1,13 @@
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> main
 <html>
 <head>
 </head>
 <body>
+<<<<<<< HEAD
 	<h2>Welcome, Booking Agent: {{name}}!</h2>
 	<a href="/home/booking_agent_view_my_flights">View My Flights</a>
 	</br></br>
@@ -20,8 +24,48 @@
 	{% for message in get_flashed_messages() %}
         <h3>Error: {{ message }}</h3>
     {% endfor %}
+=======
+<form action="/post" method="POST">
+	<h1>Welcome, {{username}}!</h1>
+	<input type="text" name = "blog" placeholder="post" required/> </br>
+	<input type="submit" value = Post />
+</form>
+
+<table>
+	<th>Time</th>
+	<th>Post</th>
+
+	<tr>
+		<td>{{posts['email']}}</td>
+	</tr>
+</table>
+
+<!-- <style type="text/css">
+	table, th, td{
+		border: 1px solid black;
+	}
+</style> -->
+
+<!-- <table>
+	<th>Time</th>
+	<th>Post</th>
+
+{% for line in posts %}
+	<tr>
+		<td>{{line['ts']}}</td>
+		<td>{{line['blog_post']}}</td>
+	</tr>
+{% endfor %}
+</table> -->
+
+<a href="/logout">Logout</a>
+>>>>>>> main
 
 </body>
 
 
+<<<<<<< HEAD
 </html>
+=======
+</html>
+>>>>>>> main

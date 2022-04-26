@@ -3,24 +3,23 @@
 </head>
 <body>
 <form action="/loginAuth" method="POST">
-	<select name="usertype">
+	<select name="usertype" required>
 		<option value="">--What is Your User Type?--</option>
 		<option value="customer">Customer</option>
 		<option value="airline_staff">Airline Staff</option>
 		<option value="booking_agent">Booking Agent</option>
 	</select>
 	<br>
-	<input type="text" name = "username" placeholder="username" required/> </br>
-	<input type="password" name = "password" placeholder="password" required/></br>
+	<input type="text" name = "logname" placeholder="Email or Username" required/> </br>
+	<input type="password" name = "password" placeholder="Password" required/></br>
 	<input type="submit" value = Login />
-	{% if error %}
-		<p class="error"><strong>Error:</strong> {{error}}</p>
-	{% endif %}
+
+	{% for message in get_flashed_messages() %}
+        <h3>Error: {{ message }}</h3>
+    {% endfor %}
 </form>
 
 <a href="/">Go back</a>
 
 </body>
-
-
 </html>
