@@ -39,7 +39,7 @@
 
 <h3> Select the Customer You want to Inspect: </h3>
 <form action="/home/airline_staff_view_frequent_customer" method="POST">
-    <select name="selected_customer">
+    <select name="selected_customer" required>
         <option value="">--Select Customer Email--</option>
         {% for c in customers %}
         <option value={{loop.index0}}> {{c['customer_email']}} </option>

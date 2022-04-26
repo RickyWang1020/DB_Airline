@@ -47,9 +47,6 @@ def loginAuth():
 	elif (str(usertype) == "booking_agent"):
 		# booking agent uses email to log in
 		query = 'SELECT * FROM booking_agent WHERE email = %s and password = MD5(%s);'
-	else:
-		flash("Invalid usertype, please identify your usertype")
-		return redirect(url_for("login"))
 	cursor.execute(query, (logname, password))
 	# stores the results in a variable
 	data = cursor.fetchone()
@@ -583,9 +580,36 @@ def airline_staff_add_airport():
 	cursor.close()
 	return render_template("airline_staff_add_airport.html", airport=airport, error=error)
 
-@app.route("/home/airline_staff_view_booking_agent", methods=['GET','POST'])
+@app.route("/home/airline_staff_view_booking_agent", methods=['GET', 'POST'])
 def airline_staff_view_booking_agent():
-	pass
+	# get the airline name that the staff belongs to
+	username = session['logname']
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
+
+	period = "YEAR"
+	if request.method == "POST":
+		period = request.form["period"]
+	
+	# display the top 5 booking agents in the recent year, and in the recent month
+	# by the number of tickets sold and by the amout of commission received
+	query_2 = "SELECT b.email AS booking_agent_email, p.booking_agent_id AS booking_agent_id, COUNT(t.ticket_id) AS number_of_tickets FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p NATURAL JOIN booking_agent b \
+		WHERE airline_name = %s AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 {}) AND NOW()) \
+		GROUP BY booking_agent_email ORDER BY number_of_tickets DESC LIMIT 5;".format(period)
+	cursor.execute(query_2, (airline_name))
+	top_5_agent_ticket = cursor.fetchall()
+	query_3 = "SELECT b.email AS booking_agent_email, p.booking_agent_id AS booking_agent_id, SUM(f.price)*0.1 AS commission_earned FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p NATURAL JOIN booking_agent b \
+		WHERE airline_name = %s AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 {}) AND NOW()) \
+		GROUP BY booking_agent_email ORDER BY commission_earned DESC LIMIT 5;".format(period)
+	cursor.execute(query_3, (airline_name))
+	top_5_agent_money = cursor.fetchall()
+
+	cursor.close()
+	return render_template("airline_staff_view_booking_agent.html", top_5_agent_ticket=top_5_agent_ticket, top_5_agent_money=top_5_agent_money, period=period)
+
 
 @app.route("/home/airline_staff_view_frequent_customer", methods=['GET','POST'])
 def airline_staff_view_frequent_customer():
