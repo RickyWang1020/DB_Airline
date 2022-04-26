@@ -21,6 +21,7 @@ conn = pymysql.connect(host='localhost',
 def hello():
 	return render_template('index.html')
 
+
 ### Login Operations ###
 # Define route for login
 @app.route('/login')
@@ -61,6 +62,7 @@ def loginAuth():
 		# returns an error message to the html page
 		flash("Invalid username or password")
 		return redirect(url_for("login"))
+
 
 ### Register Operations ###
 # Define route for register
@@ -225,21 +227,8 @@ def home():
 	else:
 		return redirect('/')
 
-### Airline Staff Functions ###
 
-# a helper function to check the staff's permission
-def check_permission(username, perm_to_check):
-	# the perm_to_check is either 'admin' or 'operator'
-	cursor = conn.cursor()
-	query = 'SELECT username, permission_type FROM permission WHERE username = %s AND permission_type = %s;'
-	cursor.execute(query, (username, perm_to_check))
-	data = cursor.fetchall()
-	cursor.close()
-	if (data):
-		return True
-	else:
-		return False
-
+### Customer Function ###
 # customer view my flights
 @app.route("/home/customer_view_my_flights", methods=['GET', 'POST'])
 def customer_view_my_flights():
@@ -325,7 +314,6 @@ def customer_view_my_flights():
 	flights = cursor.fetchall()
 	cursor.close()
 	return render_template("customer_view_my_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city)
-
 
 # customer search for flights
 @app.route("/home/customer_search_for_flights", methods=['GET', 'POST'])
@@ -413,6 +401,7 @@ def customer_search_for_flights():
 	return render_template("customer_search_for_flights.html",cur_date=cur_date, flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city)
 
 
+### Booking Agent Function ###
 # booking agent view my flights
 @app.route("/home/booking_agent_view_my_flights", methods=['GET', 'POST'])
 def booking_agent_view_my_flights():
@@ -504,7 +493,6 @@ def booking_agent_view_my_flights():
 	cursor.close()
 	return render_template("booking_agent_view_my_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city)
 
-
 # booking agent search for flights
 @app.route("/home/booking_agent_search_for_flights", methods=['GET', 'POST'])
 def booking_agent_search_for_flights():
@@ -589,6 +577,21 @@ def booking_agent_search_for_flights():
 	flights = cursor.fetchall()
 	cursor.close()
 	return render_template("booking_agent_search_for_flights.html",cur_date=cur_date, flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city)
+
+
+### Airline Staff Functions ###
+# a helper function to check the staff's permission
+def check_permission(username, perm_to_check):
+	# the perm_to_check is either 'admin' or 'operator'
+	cursor = conn.cursor()
+	query = 'SELECT username, permission_type FROM permission WHERE username = %s AND permission_type = %s;'
+	cursor.execute(query, (username, perm_to_check))
+	data = cursor.fetchall()
+	cursor.close()
+	if (data):
+		return True
+	else:
+		return False
 
 # view my flights
 @app.route("/home/airline_staff_view_my_flights", methods=['GET','POST'])
