@@ -726,7 +726,7 @@ def airline_staff_create_new_flight():
 			error = True
 		
 		# then check if this airline really has this airplane (id)
-		q2 = "SELECT airline_name, airplane_id FROM airplane NATURAL JOIN flight WHERE airline_name = %s AND airplane_id = %s;"
+		q2 = "SELECT * FROM airplane WHERE airline_name = %s AND airplane_id = %s;"
 		cursor.execute(q2, (airline_name, airplane_id))
 		d2 = cursor.fetchone()
 		if (not d2):
@@ -761,12 +761,36 @@ def airline_staff_create_new_flight():
 			flash("The Price MUST be Positive numbers!")
 			error = True
 	
-		# if there is no detected error, then add the new flight to database
+		# if there is no detected error
 		if (not error):
-			ins = "INSERT INTO flight VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s);"
+			# add the new flight to database
+			ins = "INSERT INTO flight VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);"
 			cursor.execute(ins, (airline_name, flight_num, departure_airport, departure_time.replace("T", " "), arrival_airport, arrival_time.replace("T", " "), price, status, airplane_id))
 			conn.commit()
+
+			# also, need to add the corresponding tickets into the "ticket" table
+			# the number of tickets is the number of seats
+			# first, get the max_ticket id in the ticket table, so that we can increment from that
+			q_cur_max_ticket_id = "SELECT MAX(ticket_id) AS max_tid FROM ticket;"
+			cursor.execute(q_cur_max_ticket_id)
+			cur_max_ticket_id_dict = cursor.fetchone()
+			cur_max_ticket_id = cur_max_ticket_id_dict["max_tid"]
+			if (not cur_max_ticket_id):
+				ticket_id_counter = 1
+			else:
+				ticket_id_counter = cur_max_ticket_id + 1
+			# then, get the number of seats of that airplane, to serve as ticket number
+			q_seats = "SELECT seats FROM airplane WHERE airline_name = %s AND airplane_id = %s;"
+			cursor.execute(q_seats, (airline_name, airplane_id))
+			seats_dict = cursor.fetchone()
+			seats = seats_dict["seats"]
+			# finally, add tickets to the ticket table
+			ins_ticket = "INSERT INTO ticket VALUES (%s, %s, %s);"
+			for i in range(ticket_id_counter, ticket_id_counter+seats):
+				cursor.execute(ins_ticket, (i, airline_name, flight_num))
+			conn.commit()
 			flash("You have added the Flight into the System!")
+			flash("Also, the corresponding Tickets have been added!")
 	
 	# default: get the upcoming flights of the airline for the next 30 days
 	query_2 = "SELECT airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id, GROUP_CONCAT(customer_email SEPARATOR ', ') as customers \
