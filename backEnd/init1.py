@@ -3,10 +3,15 @@ from flask import Flask, render_template, request, session, url_for, redirect, f
 import pymysql.cursors
 import logging
 from datetime import datetime
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
 
 
 # Initialize the app from Flask
-app = Flask(__name__, template_folder='../frontEnd')
+app = Flask(__name__, template_folder='../frontEnd', static_url_path='/static')
 
 # Configure MySQL
 conn = pymysql.connect(host='localhost',
@@ -16,6 +21,36 @@ conn = pymysql.connect(host='localhost',
                        charset='utf8mb4',
                        cursorclass=pymysql.cursors.DictCursor)
 
+
+### Helper Functions ###
+# helps to generate a bar chart based on two given lists: one is the x-axis values, another is the y-axis values
+def gen_bar_chart(x_values, y_values, x_axis_name, y_axis_name):
+	img = BytesIO()
+	plt.clf()
+	plt.xlabel(x_axis_name)
+	plt.ylabel(y_axis_name)
+	plt.bar(x_values, height=y_values, width= 0.5, alpha=0.5)
+	plt.savefig(img, format='png', dpi=100)
+	plt.close()
+	img.seek(0)
+	chart_url = base64.b64encode(img.getvalue()).decode('utf8')
+	return chart_url
+
+# a helper function to check the airline staff's permission
+def check_permission(username, perm_to_check):
+	# the perm_to_check is either 'admin' or 'operator'
+	cursor = conn.cursor()
+	query = 'SELECT username, permission_type FROM permission WHERE username = %s AND permission_type = %s;'
+	cursor.execute(query, (username, perm_to_check))
+	data = cursor.fetchall()
+	cursor.close()
+	if (data):
+		return True
+	else:
+		return False
+
+
+### Start of the Webpage Design ###
 # Define a route to hello function
 @app.route('/')
 def hello():
@@ -579,19 +614,6 @@ def booking_agent_search_for_flights():
 
 
 ### Airline Staff Functions ###
-# a helper function to check the staff's permission
-def check_permission(username, perm_to_check):
-	# the perm_to_check is either 'admin' or 'operator'
-	cursor = conn.cursor()
-	query = 'SELECT username, permission_type FROM permission WHERE username = %s AND permission_type = %s;'
-	cursor.execute(query, (username, perm_to_check))
-	data = cursor.fetchall()
-	cursor.close()
-	if (data):
-		return True
-	else:
-		return False
-
 # view my flights
 @app.route("/home/airline_staff_view_my_flights", methods=['GET','POST'])
 def airline_staff_view_my_flights():
@@ -975,6 +997,7 @@ def airline_staff_add_airport():
 	cursor.close()
 	return render_template("airline_staff_add_airport.html", airport=airport, error=error)
 
+# view booking agent
 @app.route("/home/airline_staff_view_booking_agent", methods=['GET', 'POST'])
 def airline_staff_view_booking_agent():
 	# get the airline name that the staff belongs to
@@ -991,12 +1014,14 @@ def airline_staff_view_booking_agent():
 	
 	# display the top 5 booking agents in the recent year, and in the recent month
 	# by the number of tickets sold and by the amout of commission received
-	query_2 = "SELECT b.email AS booking_agent_email, p.booking_agent_id AS booking_agent_id, COUNT(t.ticket_id) AS number_of_tickets FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p NATURAL JOIN booking_agent b \
+	query_2 = "SELECT b.email AS booking_agent_email, p.booking_agent_id AS booking_agent_id, COUNT(t.ticket_id) AS number_of_tickets \
+		FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p NATURAL JOIN booking_agent b \
 		WHERE airline_name = %s AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 {}) AND NOW()) \
 		GROUP BY booking_agent_email ORDER BY number_of_tickets DESC LIMIT 5;".format(period)
 	cursor.execute(query_2, (airline_name))
 	top_5_agent_ticket = cursor.fetchall()
-	query_3 = "SELECT b.email AS booking_agent_email, p.booking_agent_id AS booking_agent_id, SUM(f.price)*0.1 AS commission_earned FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p NATURAL JOIN booking_agent b \
+	query_3 = "SELECT b.email AS booking_agent_email, p.booking_agent_id AS booking_agent_id, SUM(f.price)*0.1 AS commission_earned \
+		FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p NATURAL JOIN booking_agent b \
 		WHERE airline_name = %s AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 {}) AND NOW()) \
 		GROUP BY booking_agent_email ORDER BY commission_earned DESC LIMIT 5;".format(period)
 	cursor.execute(query_3, (airline_name))
@@ -1005,7 +1030,7 @@ def airline_staff_view_booking_agent():
 	cursor.close()
 	return render_template("airline_staff_view_booking_agent.html", top_5_agent_ticket=top_5_agent_ticket, top_5_agent_money=top_5_agent_money, period=period)
 
-
+# view frequent customers, and customers' purchased tickets
 @app.route("/home/airline_staff_view_frequent_customer", methods=['GET','POST'])
 def airline_staff_view_frequent_customer():
 	# get the airline name that the staff belongs to
@@ -1018,12 +1043,14 @@ def airline_staff_view_frequent_customer():
 
 	# display the top 5 customers in the recent year
 	# by the number of tickets purchased and by the amout of money spent
-	query_2 = "SELECT p.customer_email AS customer_email, COUNT(t.ticket_id) AS number_of_tickets FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p \
+	query_2 = "SELECT p.customer_email AS customer_email, COUNT(t.ticket_id) AS number_of_tickets \
+		FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p \
 		WHERE airline_name = %s AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 YEAR) AND NOW()) \
 		GROUP BY customer_email ORDER BY number_of_tickets DESC LIMIT 5;"
 	cursor.execute(query_2, (airline_name))
 	top_5_customer_num_ticket = cursor.fetchall()
-	query_3 = "SELECT p.customer_email AS customer_email, SUM(f.price) AS money_spent FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p \
+	query_3 = "SELECT p.customer_email AS customer_email, SUM(f.price) AS money_spent \
+		FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p \
 		WHERE airline_name = %s AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 YEAR) AND NOW()) \
 		GROUP BY customer_email ORDER BY money_spent DESC LIMIT 5;"
 	cursor.execute(query_3, (airline_name))
@@ -1050,7 +1077,85 @@ def airline_staff_view_frequent_customer():
 	cursor.close()
 	return render_template("airline_staff_view_frequent_customer.html", top_5_customer_num_ticket=top_5_customer_num_ticket, top_5_customer_money=top_5_customer_money, customers=customers, info=info, customer_email=customer_email)
 
+# view reports and bar chart
+@app.route("/home/airline_staff_view_reports", methods=['GET','POST'])
+def airline_staff_view_reports():
+	# get the airline name that the staff belongs to
+	username = session['logname']
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
 
+	# period is for sql query, period_string is for front-end display
+	period = "MONTH"
+	period_string = "for the Recent Month"
+	period_statement = "(p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 {}) AND NOW())".format(period)
+	if request.method == "POST":
+		period = request.form["period_select"]
+		range_start = request.form["range_start"]
+		range_end = request.form["range_end"]
+		
+		# if the period is recent month or recent year
+		if (period == "MONTH" or period == "YEAR"):
+			if period == "YEAR":
+				period_string = "for the Recent Year"
+			period_statement = "(p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 {}) AND NOW())".format(period)
+		# if the period is a customized time range
+		else:
+			start_string = range_start if range_start else "Today"
+			end_string = range_end if range_end else "Today"
+			period_string = "from {} up to {}".format(start_string, end_string)
+			start_period = range_start if range_start else "NOW()"
+			end_period = range_end if range_end else "NOW()"
+			period_statement = "(p.purchase_date BETWEEN {} AND {})".format(start_period, end_period)
+	
+	empty = None
+	plot_url_1 = None
+	plot_url_2 = None
+	# display the monthly ticket selling statistics based on the given period (customized range, or last year, or last month)
+	# by the number of tickets sold and by the amout of profit earned
+	query_2 = "SELECT YEAR(p.purchase_date) AS purchase_year, MONTH(p.purchase_date) AS purchase_month, COUNT(t.ticket_id) AS number_ticket_sold \
+		FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p \
+		WHERE f.airline_name = %s AND {} \
+		GROUP BY purchase_year, purchase_month \
+		ORDER BY purchase_year, purchase_month;".format(period_statement)
+	cursor.execute(query_2, (airline_name))
+	num_ticket_sold = cursor.fetchall()
+	query_3 = "SELECT YEAR(p.purchase_date) AS purchase_year, MONTH(p.purchase_date) AS purchase_month, SUM(f.price) AS profit_earned \
+		FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p \
+		WHERE f.airline_name = %s AND {} \
+		GROUP BY purchase_year, purchase_month \
+		ORDER BY purchase_year, purchase_month;".format(period_statement)
+	cursor.execute(query_3, (airline_name))
+	profit_earned = cursor.fetchall()
+	cursor.close()
+
+	# process the fetched dictionary
+	if (not num_ticket_sold) and (not profit_earned):
+		flash("The Period You Selected Has NO Data, NO Bar Chart Available!")
+		empty = True
+	else:
+		year_months = []
+		monthly_num_ticket_sold = []
+		for data in num_ticket_sold:
+			cur_year_month = str(data["purchase_year"]) + "-" + str(data["purchase_month"])
+			year_months.append(cur_year_month)
+			monthly_num_ticket_sold.append(data["number_ticket_sold"])
+		plot_url_1 = gen_bar_chart(year_months, monthly_num_ticket_sold, "Year and Month", "Number of Tickets Sold")
+	
+		year_months_2 = []
+		monthly_ticket_profit = []
+		for data in profit_earned:
+			cur_year_month = str(data["purchase_year"]) + "-" + str(data["purchase_month"])
+			year_months_2.append(cur_year_month)
+			monthly_ticket_profit.append(data["profit_earned"])
+		plot_url_2 = gen_bar_chart(year_months_2, monthly_ticket_profit, "Year and Month", "Ticket Profits")
+
+	return render_template("airline_staff_view_reports.html", period_string=period_string, empty=empty, plot_url_1=plot_url_1, plot_url_2=plot_url_2)
+
+# view top destination
 @app.route("/home/airline_staff_view_top_destination", methods=['GET','POST'])
 def airline_staff_view_top_destination():
 	pass
