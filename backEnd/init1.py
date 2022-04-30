@@ -1109,7 +1109,7 @@ def airline_staff_view_reports():
 			period_string = "from {} up to {}".format(start_string, end_string)
 			start_period = range_start if range_start else "NOW()"
 			end_period = range_end if range_end else "NOW()"
-			period_statement = "(p.purchase_date BETWEEN {} AND {})".format(start_period, end_period)
+			period_statement = "(p.purchase_date BETWEEN \'{}\' AND \'{}\')".format(start_period, end_period)
 	
 	empty = None
 	plot_url_1 = None
@@ -1128,9 +1128,12 @@ def airline_staff_view_reports():
 		WHERE f.airline_name = %s AND {} \
 		GROUP BY purchase_year, purchase_month \
 		ORDER BY purchase_year, purchase_month;".format(period_statement)
+	app.logger.info("the query is %s", query_3)
+	
 	cursor.execute(query_3, (airline_name))
 	profit_earned = cursor.fetchall()
 	cursor.close()
+	app.logger.info("the data is %s", num_ticket_sold)
 
 	# process the fetched dictionary
 	if (not num_ticket_sold) and (not profit_earned):
