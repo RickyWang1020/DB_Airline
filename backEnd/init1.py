@@ -173,7 +173,7 @@ def registerBookingAgentAuth():
 	data_1 = cursor.fetchone()
 	#use fetchall() if you are expecting more than 1 data row
 	query_2 = 'SELECT * FROM booking_agent WHERE booking_agent_id = %s;'
-	cursor.execute(query, (booking_agent_id))
+	cursor.execute(query_2, (booking_agent_id))
 	# stores the results in a variable
 	data_2 = cursor.fetchone()
 	# use fetchall() if you are expecting more than 1 data row
@@ -359,11 +359,12 @@ def customer_search_for_flights():
 	# He/she will be able to see all the customers of a particular flight.
 	cursor = conn.cursor()
 	cur_time = str(datetime.now())
-	cur_date = time.split()[0]
+	cur_date = cur_time.split()[0]
 	# default: get the upcoming flights of the airline for the next 30 days
 	query_1 = "SELECT * \
-		FROM flight "
-	time_range_statement = "WHERE departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')) "
+		FROM flight \
+	    WHERE True "
+	time_range_statement = "AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
 
 	# get source/destination airports/city, for customized selections
 	query_2 = "SELECT DISTINCT f.departure_airport AS depart_airport, a.airport_city AS departure_city FROM flight f JOIN airport a ON (f.departure_airport = a.airport_name)"
@@ -399,11 +400,11 @@ def customer_search_for_flights():
 		# prepare the query for filtered search
 		# the departure date range selection
 		if start_date and end_date:
-			time_range_statement = "WHERE DATE(departure_time) BETWEEN \'{}\' AND \'{}\' ".format(start_date, end_date)
+			time_range_statement = "AND DATE(departure_time) BETWEEN \'{}\' AND \'{}\' ".format(start_date, end_date)
 		elif start_date:
-			time_range_statement = "WHERE DATE(departure_time) >= \'{}\' ".format(start_date)
+			time_range_statement = "AND DATE(departure_time) >= \'{}\' ".format(start_date)
 		elif end_date:
-			time_range_statement = "WHERE DATE(departure_time) <= \'{}\' ".format(end_date)
+			time_range_statement = "AND DATE(departure_time) <= \'{}\' ".format(end_date)
 		else:
 			time_range_statement = " "
 
@@ -427,8 +428,7 @@ def customer_search_for_flights():
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
-	query_1 += "GROUP BY airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id\
-		ORDER BY departure_time, arrival_time;"
+	query_1 += "ORDER BY departure_time, arrival_time;"
 	app.logger.info("the query for flight is: %s", query_1)
 	cursor.execute(query_1)
 	flights = cursor.fetchall()
@@ -456,7 +456,7 @@ def booking_agent_view_my_flights():
 	query_1 = "SELECT customer_email, name as customer_name, ticket_id, airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id \
 		FROM flight NATURAL JOIN (ticket NATURAL JOIN (purchases JOIN customer ON custmer_email=email )) \
 		WHERE booking_agent_id = %s "
-	time_range_statement = "AND (departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')) "
+	time_range_statement = "AND (departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
 
 	# get source/destination airports/city, for customized selections
 	query_2 = "SELECT DISTINCT f.departure_airport AS depart_airport, a.airport_city AS departure_city FROM flight f JOIN airport a ON (f.departure_airport = a.airport_name)"
@@ -540,8 +540,9 @@ def booking_agent_search_for_flights():
 	cur_date = cur_time.split()[0]
 	# default: get the upcoming flights of the airline for the next 30 days
 	query_1 = "SELECT * \
-		FROM flight "
-	time_range_statement = "WHERE departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
+		FROM flight \
+		WHERE True "
+	time_range_statement = "AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
 
 	# get source/destination airports/city, for customized selections
 	query_2 = "SELECT DISTINCT f.departure_airport AS depart_airport, a.airport_city AS departure_city FROM flight f JOIN airport a ON (f.departure_airport = a.airport_name)"
@@ -577,11 +578,11 @@ def booking_agent_search_for_flights():
 		# prepare the query for filtered search
 		# the departure date range selection
 		if start_date and end_date:
-			time_range_statement = "WHERE DATE(departure_time) BETWEEN \'{}\' AND \'{}\' ".format(start_date, end_date)
+			time_range_statement = "AND DATE(departure_time) BETWEEN \'{}\' AND \'{}\' ".format(start_date, end_date)
 		elif start_date:
-			time_range_statement = "WHERE DATE(departure_time) >= \'{}\' ".format(start_date)
+			time_range_statement = "AND DATE(departure_time) >= \'{}\' ".format(start_date)
 		elif end_date:
-			time_range_statement = "WHERE DATE(departure_time) <= \'{}\' ".format(end_date)
+			time_range_statement = "AND DATE(departure_time) <= \'{}\' ".format(end_date)
 		else:
 			time_range_statement = " "
 
@@ -605,7 +606,7 @@ def booking_agent_search_for_flights():
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
-	query_1 += "ORDER BY airline_name, departure_time, arrival_time;"
+	query_1 += "ORDER BY departure_time, arrival_time;"
 	app.logger.info("the query for flight is: %s", query_1)
 	cursor.execute(query_1)
 	flights = cursor.fetchall()

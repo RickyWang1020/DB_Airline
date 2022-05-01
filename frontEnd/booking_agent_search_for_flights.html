@@ -12,7 +12,7 @@
 <h3> Filters: </h3>
 <form action="/home/booking_agent_search_for_flights" method="POST">
     <label for="start">Departure date starts from:</label>
-    <input type="date" name="range_start" onfocus="this.min=new Date().toISOString().split('T')[0]" />
+    <input type="date" name="range_start" onfocus="this.min=new Date().toISOString().split('T')[0]">
     </br>
     <label for="end">Departure date ends at:</label>
     <input type="date" name="range_end" onfocus="this.min=new Date().toISOString().split('T')[0]">
@@ -63,6 +63,14 @@
 	</tr>
     {% endfor %}
 </table>
+</br>
+<h2>Purchase Tickets</h2>
+<form action="/home/booking_agent_purchase_tickets" method="POST">
+    <input type="text" name = "email" placeholder="customer email" required/> </br>
+    <input type="text" name = "airline_name" placeholder="airline name" required/> </br>
+    <input type="number" name = "flight_num" placeholder="flight number" required/></br>
+    <input type="submit" value = Purchase /></br>
+</form>
 </br>
 <a href="/home">Go back</a>
 </body>
