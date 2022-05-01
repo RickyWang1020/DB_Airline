@@ -342,8 +342,7 @@ def customer_view_my_flights():
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
-	query_1 += "GROUP BY ticket_id\
-		ORDER BY departure_time, arrival_time;"
+	query_1 += "ORDER BY departure_time, arrival_time;"
 	app.logger.info("the query for flight is: %s", query_1)
 	cursor.execute(query_1, (customer_email))
 	flights = cursor.fetchall()
@@ -358,8 +357,6 @@ def customer_search_for_flights():
 	# source/destination airports/city etc.
 	# He/she will be able to see all the customers of a particular flight.
 	cursor = conn.cursor()
-	cur_time = str(datetime.now())
-	cur_date = cur_time.split()[0]
 	# default: get the upcoming flights of the airline for the next 30 days
 	query_1 = "SELECT * \
 		FROM flight \
@@ -433,7 +430,75 @@ def customer_search_for_flights():
 	cursor.execute(query_1)
 	flights = cursor.fetchall()
 	cursor.close()
-	return render_template("customer_search_for_flights.html",cur_date=cur_date, flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city)
+	return render_template("customer_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city)
+
+# customer purchase tickets
+@app.route("/home/customer_purchase_tickets", methods=['GET', 'POST'])
+def customer_purchase_tickets():
+	username = session['logname']
+	cursor = conn.cursor()
+	error = None
+	# receive the inputs of purchasing tickets
+	if request.method == "POST":
+		airline_name = request.form["airline_name"]
+		flight_num = request.form["flight_num"]
+
+		# first check if there the given flight_num already exists
+		query_1 = "SELECT ticket_id FROM ticket WHERE airline_name = %s AND flight_num = %s"
+		# then check if there are seats left
+		query_2 = "SELECT ticket_id FROM ticket WHERE airline_name = %s AND flight_num = %s AND ticket_id NOT IN (SELECT ticket_id FROM purchases)"
+		cursor.execute(query_1, (airline_name, flight_num))
+		data_1 = cursor.fetchone()
+		cursor.execute(query_2, (airline_name, flight_num))
+		data_2 = cursor.fetchone()
+
+		if (not data_1):
+			# If the previous query returns data, then the flight exists
+			flash("This flight does not exist!")
+			error = True
+		elif (not data_2):
+			# If the previous query returns data, then the flight exists
+			flash("Sorry! This flight has no seat left!")
+			error = True
+
+		# if there is no detected error
+		if (not error):
+			# get the ticket_id to be purchased
+			query_3 = "SELECT min(ticket_id) AS min_ticket_id FROM ticket WHERE airline_name = %s AND flight_num = %s AND ticket_id NOT IN (SELECT ticket_id FROM purchases)"
+			cursor.execute(query_3, (airline_name, flight_num))
+			ticket_id_data = cursor.fetchone()
+			ticket_id = ticket_id_data["min_ticket_id"]
+			# get the current date as purchase_date
+			cur_time = str(datetime.now())
+			cur_date = cur_time.split()[0]
+			app.logger.info("purchase date is %s", cur_date)
+			# add the purchase to database
+			ins = "INSERT INTO purchases VALUES (%s, %s, NULL, %s);"
+			cursor.execute(ins, (ticket_id, username, cur_date))
+			conn.commit()
+			flash("You have purchased the ticket! The ticket ID is " + str(ticket_id) + "!")
+
+		# default: get the upcoming flights of the airline for the next 30 days
+		query_4 = "SELECT * \
+				FROM flight \
+			    WHERE True "
+		time_range_statement = "AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
+		query_4 += time_range_statement
+		query_4 += "ORDER BY departure_time, arrival_time;"
+		# app.logger.info("the query for flight is: %s", query_4)
+		cursor.execute(query_4)
+		flights = cursor.fetchall()
+		# get source/destination airports/city, for customized selections
+		query_5 = "SELECT DISTINCT f.departure_airport AS depart_airport, a.airport_city AS departure_city FROM flight f JOIN airport a ON (f.departure_airport = a.airport_name)"
+		cursor.execute(query_5)
+		departure_airport_city = cursor.fetchall()
+		query_6 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
+		cursor.execute(query_6)
+		arrival_airport_city = cursor.fetchall()
+		app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
+
+	cursor.close()
+	return render_template("customer_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city, error=error)
 
 
 ### Booking Agent Function ###
@@ -450,13 +515,13 @@ def booking_agent_view_my_flights():
 	query_0 = 'SELECT booking_agent_id FROM booking_agent WHERE email = %s;'
 	cursor.execute(query_0, (booking_agent_email))
 	booking_agent_id_data = cursor.fetchone()
-	booking_agent_id = boooking_agent_id_data["booking_agent_id"]
+	booking_agent_id = booking_agent_id_data["booking_agent_id"]
 
 	# default: get the upcoming flights of the airline for the next 30 days
 	query_1 = "SELECT customer_email, name as customer_name, ticket_id, airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id \
-		FROM flight NATURAL JOIN (ticket NATURAL JOIN (purchases JOIN customer ON custmer_email=email )) \
+		FROM flight NATURAL JOIN (ticket NATURAL JOIN (purchases JOIN customer ON customer_email=email )) \
 		WHERE booking_agent_id = %s "
-	time_range_statement = "AND (departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
+	time_range_statement = "AND (departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')) "
 
 	# get source/destination airports/city, for customized selections
 	query_2 = "SELECT DISTINCT f.departure_airport AS depart_airport, a.airport_city AS departure_city FROM flight f JOIN airport a ON (f.departure_airport = a.airport_name)"
@@ -520,8 +585,7 @@ def booking_agent_view_my_flights():
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
-	query_1 += "GROUP BY ticket_id, customer_email\
-		ORDER BY departure_time, arrival_time;"
+	query_1 += "ORDER BY departure_time, arrival_time;"
 	app.logger.info("the query for flight is: %s", query_1)
 	cursor.execute(query_1, (booking_agent_id))
 	flights = cursor.fetchall()
@@ -536,8 +600,6 @@ def booking_agent_search_for_flights():
 	# source/destination airports/city etc.
 	# He/she will be able to see all the customers of a particular flight.
 	cursor = conn.cursor()
-	cur_time = str(datetime.now())
-	cur_date = cur_time.split()[0]
 	# default: get the upcoming flights of the airline for the next 30 days
 	query_1 = "SELECT * \
 		FROM flight \
@@ -611,7 +673,80 @@ def booking_agent_search_for_flights():
 	cursor.execute(query_1)
 	flights = cursor.fetchall()
 	cursor.close()
-	return render_template("booking_agent_search_for_flights.html",cur_date=cur_date, flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city)
+	return render_template("booking_agent_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city)
+
+# booking agent purchase tickets
+@app.route("/home/booking_agent_purchase_tickets", methods=['GET', 'POST'])
+def booking_agent_purchase_tickets():
+	username = session['logname']
+	cursor = conn.cursor()
+	error = None
+	# receive the inputs of purchasing tickets
+	if request.method == "POST":
+		airline_name = request.form["airline_name"]
+		flight_num = request.form["flight_num"]
+		email = request.form["email"]
+		# get the booking agent id
+		query_0 = "SELECT booking_agent_id FROM booking_agent WHERE email = %s"
+		cursor.execute(query_0, (username))
+		booking_agent_id_data = cursor.fetchone()
+		booking_agent_id = booking_agent_id_data["booking_agent_id"]
+		# first check if there the given flight_num already exists
+		query_1 = "SELECT ticket_id FROM ticket WHERE airline_name = %s AND flight_num = %s"
+		# then check if there are seats left
+		query_2 = "SELECT ticket_id FROM ticket WHERE airline_name = %s AND flight_num = %s AND ticket_id NOT IN (SELECT ticket_id FROM purchases)"
+		cursor.execute(query_1, (airline_name, flight_num))
+		data_1 = cursor.fetchone()
+		cursor.execute(query_2, (airline_name, flight_num))
+		data_2 = cursor.fetchone()
+
+		if (not data_1):
+			# If the previous query returns data, then the flight exists
+			flash("This flight does not exist!")
+			error = True
+		elif (not data_2):
+			# If the previous query returns data, then the flight exists
+			flash("Sorry! This flight has no seat left!")
+			error = True
+
+		# if there is no detected error
+		if (not error):
+			# get the ticket_id to be purchased
+			query_3 = "SELECT min(ticket_id) AS min_ticket_id FROM ticket WHERE airline_name = %s AND flight_num = %s AND ticket_id NOT IN (SELECT ticket_id FROM purchases)"
+			cursor.execute(query_3, (airline_name, flight_num))
+			ticket_id_data = cursor.fetchone()
+			ticket_id = ticket_id_data["min_ticket_id"]
+			# get the current date as purchase_date
+			cur_time = str(datetime.now())
+			cur_date = cur_time.split()[0]
+			app.logger.info("purchase date is %s", cur_date)
+			# add the purchase to database
+			ins = "INSERT INTO purchases VALUES (%s, %s, %s, %s);"
+			cursor.execute(ins, (ticket_id, email, booking_agent_id, cur_date))
+			conn.commit()
+			flash("You have purchased the ticket! The ticket ID is " + str(ticket_id) + "!")
+
+		# default: get the upcoming flights of the airline for the next 30 days
+		query_4 = "SELECT * \
+				FROM flight \
+			    WHERE True "
+		time_range_statement = "AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
+		query_4 += time_range_statement
+		query_4 += "ORDER BY departure_time, arrival_time;"
+		# app.logger.info("the query for flight is: %s", query_4)
+		cursor.execute(query_4)
+		flights = cursor.fetchall()
+		# get source/destination airports/city, for customized selections
+		query_5 = "SELECT DISTINCT f.departure_airport AS depart_airport, a.airport_city AS departure_city FROM flight f JOIN airport a ON (f.departure_airport = a.airport_name)"
+		cursor.execute(query_5)
+		departure_airport_city = cursor.fetchall()
+		query_6 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
+		cursor.execute(query_6)
+		arrival_airport_city = cursor.fetchall()
+		app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
+
+	cursor.close()
+	return render_template("customer_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city, error=error)
 
 
 ### Airline Staff Functions ###
