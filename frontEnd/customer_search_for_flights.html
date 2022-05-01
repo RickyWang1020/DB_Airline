@@ -69,6 +69,15 @@
     <input type="text" name = "airline_name" placeholder="airline name" required/> </br>
     <input type="number" name = "flight_num" placeholder="flight number" required/></br>
     <input type="submit" value = Purchase /></br>
+    {% if error %}
+        {% for message in get_flashed_messages() %}
+        <h3>Error: {{ message }}</h3>
+        {% endfor %}
+    {% else %}
+        {% for message in get_flashed_messages() %}
+        <h3>Success! {{ message }}</h3>
+        {% endfor %}
+    {% endif %}
 </form>
 </br>
 <a href="/home">Go back</a>
