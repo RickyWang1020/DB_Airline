@@ -1,0 +1,42 @@
+<html>
+<head>
+</head>
+<body>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
+
+<h2>View Top Destinations</h2>
+
+<h3> Select the Period: </h3>
+<form action="/home/airline_staff_view_top_destination" method="POST">
+    <select name="period" required>
+        <option value="">--Select Search Period--</option>
+        <option value="1 YEAR"> Recent 1 Year </option>
+        <option value="3 MONTH"> Recent 3 Months </option>
+        <option value="1 MONTH"> Recent 1 Month </option>
+	</select>
+    <input type="submit" value = Search />
+</form>
+
+<h3> Top 3 Destinations in the Recent {{period}}: </h3>
+<table>
+    <th>City</th>
+    <th>Airport</th>
+	<th>Number of Tickets Sold</th>
+
+    {% for line in top_3_destination %}
+	<tr>
+		<td>{{line['city_name']}}</td>
+        <td>{{line['airport_name']}}</td>
+		<td>{{line['num_ticket']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+</br>
+<a href="/home">Go back</a>
+</body>
+</html>

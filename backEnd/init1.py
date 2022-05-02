@@ -1128,12 +1128,9 @@ def airline_staff_view_reports():
 		WHERE f.airline_name = %s AND {} \
 		GROUP BY purchase_year, purchase_month \
 		ORDER BY purchase_year, purchase_month;".format(period_statement)
-	app.logger.info("the query is %s", query_3)
-	
 	cursor.execute(query_3, (airline_name))
 	profit_earned = cursor.fetchall()
 	cursor.close()
-	app.logger.info("the data is %s", num_ticket_sold)
 
 	# process the fetched dictionary
 	if (not num_ticket_sold) and (not profit_earned):
@@ -1156,12 +1153,38 @@ def airline_staff_view_reports():
 			monthly_ticket_profit.append(data["profit_earned"])
 		plot_url_2 = gen_bar_chart(year_months_2, monthly_ticket_profit, "Year and Month", "Ticket Profits")
 
-	return render_template("airline_staff_view_reports.html", period_string=period_string, empty=empty, plot_url_1=plot_url_1, plot_url_2=plot_url_2)
+	return render_template("airline_staff_view_reports.html", period_string=period_string, plot_url_1=plot_url_1, plot_url_2=plot_url_2, empty=empty)
 
-# view top destination
+# compare the revenues earned
+@app.route("/home/airline_staff_compare_revenue", methods=['GET','POST'])
+def airline_staff_compare_revenue():
+	pass
+
+# view top 3 destinations
 @app.route("/home/airline_staff_view_top_destination", methods=['GET','POST'])
 def airline_staff_view_top_destination():
-	pass
+	# get the airline name that the staff belongs to
+	username = session['logname']
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
+
+	period = "1 YEAR"
+	if request.method == "POST":
+		period = request.form["period"]
+	
+	# search for the top 3 destinations according to the purchased tickets that depart from that airport
+	query_2 = "SELECT a.airport_city AS city_name, a.airport_name AS airport_name, COUNT(t.ticket_id) AS num_ticket \
+		FROM (flight f NATURAL JOIN ticket t NATURAL JOIN purchases p) JOIN airport a ON (f.departure_airport = a.airport_name) \
+		WHERE airline_name = %s AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL {}) AND NOW()) \
+		GROUP BY city_name, airport_name ORDER BY num_ticket DESC LIMIT 3;".format(period)
+	cursor.execute(query_2, (airline_name))
+	top_3_destination = cursor.fetchall()
+	cursor.close()
+	return render_template("airline_staff_view_top_destination.html", top_3_destination=top_3_destination, period=period)
+
 
 ### Logout Operation ###
 @app.route('/logout')
