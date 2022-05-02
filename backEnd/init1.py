@@ -1118,9 +1118,9 @@ def airline_staff_view_reports():
 			start_string = range_start if range_start else "Today"
 			end_string = range_end if range_end else "Today"
 			period_string = "from {} up to {}".format(start_string, end_string)
-			start_period = range_start if range_start else "NOW()"
-			end_period = range_end if range_end else "NOW()"
-			period_statement = "(p.purchase_date BETWEEN \'{}\' AND \'{}\')".format(start_period, end_period)
+			start_period = "\'" + range_start + "\'" if range_start else "NOW()"
+			end_period = "\'" + range_end + "\'" if range_end else "NOW()"
+			period_statement = "(p.purchase_date BETWEEN {} AND {})".format(start_period, end_period)
 	
 	empty = None
 	plot_url_1 = None
