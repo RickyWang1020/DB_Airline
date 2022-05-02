@@ -36,6 +36,17 @@ def gen_bar_chart(x_values, y_values, x_axis_name, y_axis_name):
 	chart_url = base64.b64encode(img.getvalue()).decode('utf8')
 	return chart_url
 
+# helps to generate a pie chart
+def gen_pie_chart(labels, values):
+	img = BytesIO()
+	fig1, ax1 = plt.subplots()
+	ax1.pie(values, explode=(0, 0.1), labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
+	ax1.axis('equal')
+	fig1.savefig(img, format='png', dpi=100)
+	img.seek(0)
+	pie_url = base64.b64encode(img.getvalue()).decode('utf8')
+	return pie_url
+
 # a helper function to check the airline staff's permission
 def check_permission(username, perm_to_check):
 	# the perm_to_check is either 'admin' or 'operator'
@@ -1243,8 +1254,8 @@ def airline_staff_view_reports():
 			start_string = range_start if range_start else "Today"
 			end_string = range_end if range_end else "Today"
 			period_string = "from {} up to {}".format(start_string, end_string)
-			start_period = range_start if range_start else "NOW()"
-			end_period = range_end if range_end else "NOW()"
+			start_period = "\'" + range_start + "\'" if range_start else "NOW()"
+			end_period = "\'" + range_end + "\'" if range_end else "NOW()"
 			period_statement = "(p.purchase_date BETWEEN {} AND {})".format(start_period, end_period)
 	
 	empty = None
@@ -1289,12 +1300,87 @@ def airline_staff_view_reports():
 			monthly_ticket_profit.append(data["profit_earned"])
 		plot_url_2 = gen_bar_chart(year_months_2, monthly_ticket_profit, "Year and Month", "Ticket Profits")
 
-	return render_template("airline_staff_view_reports.html", period_string=period_string, empty=empty, plot_url_1=plot_url_1, plot_url_2=plot_url_2)
+	return render_template("airline_staff_view_reports.html", period_string=period_string, plot_url_1=plot_url_1, plot_url_2=plot_url_2, empty=empty)
 
-# view top destination
+# compare the revenues earned
+@app.route("/home/airline_staff_compare_revenue", methods=['GET','POST'])
+def airline_staff_compare_revenue():
+	# get the airline name that the staff belongs to
+	username = session['logname']
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
+
+	period = "YEAR"
+	if request.method == "POST":
+		period = request.form["period"]
+
+	# get: total amount of revenue earned from direct sales (when customer bought tickets without using a booking agent) 
+	# and total amount of revenue earned from indirect sales (when customer bought tickets using booking agents)
+	query_2 = "SELECT SUM(f.price) AS revenue FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p \
+		WHERE airline_name = %s AND p.booking_agent_id IS NULL \
+		AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 {}) AND NOW());".format(period)
+	cursor.execute(query_2, (airline_name))
+	direct_revenue_info = cursor.fetchone()
+	
+	query_3 = "SELECT SUM(f.price) AS revenue FROM flight f NATURAL JOIN ticket t NATURAL JOIN purchases p \
+		WHERE airline_name = %s AND p.booking_agent_id IS NOT NULL \
+		AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 {}) AND NOW());".format(period)
+	cursor.execute(query_3, (airline_name))
+	indirect_revenue_info = cursor.fetchone()
+	cursor.close()
+
+	# edge case: direct revenue or/and indirect revenue is/are zero
+	if (not direct_revenue_info):
+		direct_revenue = 0
+	else:
+		direct_revenue = int(direct_revenue_info["revenue"])
+	if (not indirect_revenue_info):
+		indirect_revenue = 0
+	else:
+		indirect_revenue = int(indirect_revenue_info["revenue"])
+
+	# generate the pie chart
+	pie_url = None
+	empty = True
+	pie_labels = ["Direct Revenue: " + str(direct_revenue), "Indirect Revenue: " + str(indirect_revenue)]
+	if direct_revenue == 0 and indirect_revenue == 0:
+		flash("The Period You Selected Has NO Data, NO Pie Chart Available!")
+	else:
+		percentage_direct_rev = int(direct_revenue*100 / (direct_revenue+indirect_revenue))
+		pie_values = [percentage_direct_rev, 100-percentage_direct_rev]
+		pie_url = gen_pie_chart(pie_labels, pie_values)
+		empty = None
+	return render_template("airline_staff_compare_revenue.html", period=period, pie_url=pie_url, empty=empty)
+
+
+# view top 3 destinations
 @app.route("/home/airline_staff_view_top_destination", methods=['GET','POST'])
 def airline_staff_view_top_destination():
-	pass
+	# get the airline name that the staff belongs to
+	username = session['logname']
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
+
+	period = "1 YEAR"
+	if request.method == "POST":
+		period = request.form["period"]
+	
+	# search for the top 3 destinations according to the purchased tickets that depart from that airport
+	query_2 = "SELECT a.airport_city AS city_name, a.airport_name AS airport_name, COUNT(t.ticket_id) AS num_ticket \
+		FROM (flight f NATURAL JOIN ticket t NATURAL JOIN purchases p) JOIN airport a ON (f.departure_airport = a.airport_name) \
+		WHERE airline_name = %s AND (p.purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL {}) AND NOW()) \
+		GROUP BY city_name, airport_name ORDER BY num_ticket DESC LIMIT 3;".format(period)
+	cursor.execute(query_2, (airline_name))
+	top_3_destination = cursor.fetchall()
+	cursor.close()
+	return render_template("airline_staff_view_top_destination.html", top_3_destination=top_3_destination, period=period)
+
 
 ### Logout Operation ###
 @app.route('/logout')

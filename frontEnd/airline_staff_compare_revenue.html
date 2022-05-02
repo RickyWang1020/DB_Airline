@@ -1,0 +1,38 @@
+<html>
+<head>
+<script>
+</script>
+</head>
+<body>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
+
+<h2>Compare the Revenue Earned</h2>
+
+<h3> Select the Period You Want to View: </h3>
+<form action="/home/airline_staff_compare_revenue" method="POST">
+    <select name="period" required>
+        <option value="">--Select Search Period--</option>
+        <option value="YEAR"> Recent 1 Year </option>
+        <option value="MONTH"> Recent 1 Month </option>
+	</select>
+    <input type="submit" value = Search />
+</form>
+
+<h3> Pie Chart Comparison of the Revenue for the Recent 1 {{period}}: </h3>
+
+{% if empty %}
+    {% for message in get_flashed_messages() %}
+    <h3>Warning: {{ message }}</h3>
+    {% endfor %}
+{% else %}
+<img src="data:image/png;base64, {{ pie_url }}">
+{% endif %}
+
+</br>
+<a href="/home">Go back</a>
+</body>
+</html>
