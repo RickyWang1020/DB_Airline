@@ -544,8 +544,8 @@ def customer_track_my_spending():
 	# display the monthly ticket selling statistics based on the given period (customized range, or last year, or last month)
 	# by the number of tickets sold and by the amout of profit earned
 	query = "SELECT YEAR(purchase_date) AS purchase_year, MONTH(purchase_date) AS purchase_month, SUM(price) AS month_spent \
-		FROM flight NATURAL JOIN ticket NATURAL JOIN (purchases JOIN customer ON customer_email = email)\
-		WHERE email = %s AND {} \
+		FROM flight NATURAL JOIN ticket NATURAL JOIN purchases\
+		WHERE customer_email = %s AND {} \
 		GROUP BY purchase_year, purchase_month \
 		ORDER BY purchase_year, purchase_month;".format(period_statement)
 	cursor.execute(query, (email))
@@ -869,6 +869,66 @@ def booking_agent_view_my_commission():
 		avg_commission = 0
 
 	return render_template("booking_agent_view_my_commission.html", total_commission=total_commission, ticket_num = ticket_num, avg_commission = avg_commission)
+
+
+# customer track my spending
+@app.route("/home/booking_agent_view_top_customers", methods=['GET', 'POST'])
+def booking_agent_view_top_customers():
+	# get the airline name that the staff belongs to
+	booking_agent_email = session['logname']
+	cursor = conn.cursor()
+	query_0 = 'SELECT booking_agent_id FROM booking_agent WHERE email = %s;'
+	cursor.execute(query_0, (booking_agent_email))
+	booking_agent_id_data = cursor.fetchone()
+	booking_agent_id = booking_agent_id_data["booking_agent_id"]
+
+	period_statement_1 = "(purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 6 MONTH) AND NOW())"
+	period_statement_2 = "(purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 YEAR) AND NOW())"
+
+	empty = None
+	plot_url_1 = None
+	plot_url_2 = None
+	# display the monthly ticket selling statistics based on the given period (customized range, or last year, or last month)
+	# by the number of tickets sold and by the amout of profit earned
+	query_1 = "SELECT customer_email, COUNT(ticket_id) AS ticket_num \
+		FROM purchases \
+		WHERE booking_agent_id = %s \
+		GROUP BY customer_email \
+		ORDER BY ticket_num DESC LIMIT 5;".format(period_statement_1)
+	cursor.execute(query_1, (booking_agent_id))
+	ticket_num_data = cursor.fetchall()
+	query_2 = "SELECT customer_email, SUM(price) AS total_commission\
+		FROM flight NATURAL JOIN ticket NATURAL JOIN purchases \
+		WHERE booking_agent_id = %s \
+		GROUP BY customer_email \
+		ORDER BY total_commission DESC LIMIT 5;".format(period_statement_2)
+	cursor.execute(query_2, (booking_agent_id))
+	total_commission_data = cursor.fetchall()
+	cursor.close()
+
+	# process the fetched dictionary
+	if (not ticket_num_data) and (not total_commission_data):
+		flash("The Period You Selected Has NO Data, NO Bar Chart Available!")
+		empty = True
+	else:
+		ticket_num = []
+		customer_1 = []
+		for data in ticket_num_data:
+			customer_1.append(data["customer_email"])
+			ticket_num.append(data["ticket_num"])
+			x_pos = np.arange(len(customer_1))
+		plot_url_1 = gen_bar_chart(x_pos, customer_1, ticket_num, "Customer Email", "Number of Tickets")
+
+		total_commission = []
+		customer_2 = []
+		for data in total_commission_data:
+			customer_2.append(data["customer_email"])
+			total_commission.append(data["total_commission"])
+			x_pos = np.arange(len(customer_2))
+		plot_url_2 = gen_bar_chart(x_pos, customer_2, total_commission, "Customer Email", "Total Commission")
+
+	return render_template("booking_agent_view_top_customers.html", plot_url_1=plot_url_1, plot_url_2=plot_url_2, empty=empty)
+
 
 
 ### Airline Staff Functions ###
