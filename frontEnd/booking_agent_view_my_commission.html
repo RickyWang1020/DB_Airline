@@ -1,0 +1,31 @@
+<html>
+<head>
+</head>
+<body>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
+
+<h2>View Your Commission</h2>
+<h3> Filters: </h3>
+<form action="/home/booking_agent_view_my_commission" method="POST">
+    <label for="start">Departure date starts from:</label>
+    <input type="date" name="range_start" min="1971-01-01">
+    </br>
+    <label for="end">Departure date ends at:</label>
+    <input type="date" name="range_end" min="1971-01-01">
+    </br>
+    <input type="submit" value = submit />
+</form>
+
+
+
+<h3> The total commission is: </h3>
+<h3> {{commission}} </h3>
+</br>
+
+<a href="/home">Go back</a>
+</body>
+</html>

@@ -760,6 +760,57 @@ def booking_agent_purchase_tickets():
 	return render_template("customer_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city, error=error)
 
 
+# booking agent view my commission
+@app.route("/home/booking_agent_view_my_commission", methods=['GET', 'POST'])
+def booking_agent_view_my_commission():
+	# Defaults will be showing all the upcoming flights operated by the airline he/she works for the next 30 days.
+	# He/she will be able to see all the current/future/past flights operated by the airline he/she works for based on range of dates,
+	# source/destination airports/city etc.
+	# He/she will be able to see all the customers of a particular flight.
+	booking_agent_email = session['logname']
+	cursor = conn.cursor()
+
+	query_0 = 'SELECT booking_agent_id FROM booking_agent WHERE email = %s;'
+	cursor.execute(query_0, (booking_agent_email))
+	booking_agent_id_data = cursor.fetchone()
+	booking_agent_id = booking_agent_id_data["booking_agent_id"]
+	# default: get the upcoming purchased flights for the next 30 days
+	query_1 = "SELECT SUM(price)/10 AS commission \
+		FROM flight NATURAL JOIN (ticket NATURAL JOIN purchases) \
+		WHERE booking_agent_id = %s "
+	time_range_statement = "AND (departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')) "
+
+
+	if request.method == "POST":
+		# get from the form result: the range of dates that the staff wants to check
+		start_date = request.form["range_start"]
+		end_date = request.form["range_end"]
+
+		# prepare the query for filtered search
+		# the departure date range selection
+		if start_date and end_date:
+			time_range_statement = "AND DATE(departure_time) BETWEEN \'{}\' AND \'{}\' ".format(start_date, end_date)
+		elif start_date:
+			time_range_statement = "AND DATE(departure_time) >= \'{}\' ".format(start_date)
+		elif end_date:
+			time_range_statement = "AND DATE(departure_time) <= \'{}\' ".format(end_date)
+		else:
+			time_range_statement = " "
+
+	# now execute the flight search query to get the filtered (if applicable) search result
+	query_1 += time_range_statement
+	app.logger.info("the query is: %s", query_1)
+	cursor.execute(query_1, (booking_agent_id))
+	commission_data = cursor.fetchall()
+	cursor.close()
+	commission = commission_data[0]["commission"]
+	if (commission == None):
+		commission = 0
+	app.logger.info("the commission is %s", commission)
+
+	return render_template("booking_agent_view_my_commission.html", commission=commission)
+
+
 ### Airline Staff Functions ###
 # view my flights
 @app.route("/home/airline_staff_view_my_flights", methods=['GET','POST'])
