@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, session, url_for, redirect, f
 import pymysql.cursors
 import logging
 from datetime import datetime
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -24,12 +25,13 @@ conn = pymysql.connect(host='localhost',
 
 ### Helper Functions ###
 # helps to generate a bar chart based on two given lists: one is the x-axis values, another is the y-axis values
-def gen_bar_chart(x_values, y_values, x_axis_name, y_axis_name):
+def gen_bar_chart(x_values, x_labels, y_values, x_axis_name, y_axis_name):
 	img = BytesIO()
 	plt.clf()
 	plt.xlabel(x_axis_name)
 	plt.ylabel(y_axis_name)
-	plt.bar(x_values, height=y_values, width= 0.5, alpha=0.5)
+	plt.bar(x_values, height=y_values, width= 0.5, alpha=0.5, align="center")
+	plt.xticks(x_values, x_labels)
 	plt.savefig(img, format='png', dpi=100)
 	plt.close()
 	img.seek(0)
@@ -512,6 +514,61 @@ def customer_purchase_tickets():
 	return render_template("customer_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city, error=error)
 
 
+# customer track my spending
+@app.route("/home/customer_track_my_spending", methods=['GET', 'POST'])
+def customer_track_my_spending():
+	# get the airline name that the staff belongs to
+	email = session['logname']
+	cursor = conn.cursor()
+
+	# period is for sql query, period_string is for front-end display
+	method = "default"
+	period_string = "for Last 6 Months"
+	period_statement = "(purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 6 MONTH) AND NOW())"
+	if request.method == "POST":
+		method = request.form["method_select"]
+		range_start = request.form["range_start"]
+		range_end = request.form["range_end"]
+
+		# if the period is recent month or recent year
+		if (method == "customize"):
+			start_string = range_start if range_start else "Today"
+			end_string = range_end if range_end else "Today"
+			period_string = "from {} up to {}".format(start_string, end_string)
+			start_period = "\'" + range_start + "\'" if range_start else "NOW()"
+			end_period = "\'" + range_end + "\'" if range_end else "NOW()"
+			period_statement = "(purchase_date BETWEEN {} AND {})".format(start_period, end_period)
+
+	empty = None
+	plot_url = None
+	# display the monthly ticket selling statistics based on the given period (customized range, or last year, or last month)
+	# by the number of tickets sold and by the amout of profit earned
+	query = "SELECT YEAR(purchase_date) AS purchase_year, MONTH(purchase_date) AS purchase_month, SUM(price) AS month_spent \
+		FROM flight NATURAL JOIN ticket NATURAL JOIN (purchases JOIN customer ON customer_email = email)\
+		WHERE email = %s AND {} \
+		GROUP BY purchase_year, purchase_month \
+		ORDER BY purchase_year, purchase_month;".format(period_statement)
+	cursor.execute(query, (email))
+	month_spent_data = cursor.fetchall()
+	cursor.close()
+
+	# process the fetched dictionary
+	if (not month_spent_data):
+		flash("The Period You Selected Has NO Data, NO Bar Chart Available!")
+		empty = True
+	else:
+		year_months = []
+		month_spent = []
+		for data in month_spent_data:
+			cur_year_month = str(data["purchase_year"]) + "-" + str(data["purchase_month"])
+			year_months.append(cur_year_month)
+			month_spent.append(data["month_spent"])
+			x_pos = np.arange(len(year_months))
+		plot_url = gen_bar_chart(x_pos, year_months, month_spent, "Year and Month", "Money Spent")
+
+	return render_template("customer_track_my_spending.html", period_string=period_string, plot_url=plot_url, empty=empty)
+
+
 ### Booking Agent Function ###
 # booking agent view my flights
 @app.route("/home/booking_agent_view_my_flights", methods=['GET', 'POST'])
@@ -775,7 +832,7 @@ def booking_agent_view_my_commission():
 	booking_agent_id_data = cursor.fetchone()
 	booking_agent_id = booking_agent_id_data["booking_agent_id"]
 	# default: get the upcoming purchased flights for the next 30 days
-	query_1 = "SELECT SUM(price)/10 AS commission \
+	query_1 = "SELECT SUM(price)/10 AS total_commission, COUNT(*) AS ticket_num, AVG(price)/10 AS avg_commission \
 		FROM flight NATURAL JOIN (ticket NATURAL JOIN purchases) \
 		WHERE booking_agent_id = %s "
 	time_range_statement = "AND (departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')) "
@@ -803,12 +860,15 @@ def booking_agent_view_my_commission():
 	cursor.execute(query_1, (booking_agent_id))
 	commission_data = cursor.fetchall()
 	cursor.close()
-	commission = commission_data[0]["commission"]
-	if (commission == None):
+	total_commission = commission_data[0]["total_commission"]
+	ticket_num = commission_data[0]["ticket_num"]
+	avg_commission = commission_data[0]["avg_commission"]
+	if (total_commission == None):
 		commission = 0
-	app.logger.info("the commission is %s", commission)
+		ticket_num = 0
+		avg_commission = 0
 
-	return render_template("booking_agent_view_my_commission.html", commission=commission)
+	return render_template("booking_agent_view_my_commission.html", total_commission=total_commission, ticket_num = ticket_num, avg_commission = avg_commission)
 
 
 ### Airline Staff Functions ###
@@ -1341,7 +1401,8 @@ def airline_staff_view_reports():
 			cur_year_month = str(data["purchase_year"]) + "-" + str(data["purchase_month"])
 			year_months.append(cur_year_month)
 			monthly_num_ticket_sold.append(data["number_ticket_sold"])
-		plot_url_1 = gen_bar_chart(year_months, monthly_num_ticket_sold, "Year and Month", "Number of Tickets Sold")
+			x_pos = np.arange(len(year_months))
+		plot_url_1 = gen_bar_chart(x_pos, year_months, monthly_num_ticket_sold, "Year and Month", "Number of Tickets Sold")
 	
 		year_months_2 = []
 		monthly_ticket_profit = []
@@ -1349,7 +1410,8 @@ def airline_staff_view_reports():
 			cur_year_month = str(data["purchase_year"]) + "-" + str(data["purchase_month"])
 			year_months_2.append(cur_year_month)
 			monthly_ticket_profit.append(data["profit_earned"])
-		plot_url_2 = gen_bar_chart(year_months_2, monthly_ticket_profit, "Year and Month", "Ticket Profits")
+			x_pos_2 = np.arange(len(year_months_2))
+		plot_url_2 = gen_bar_chart(x_pos_2, year_months_2, monthly_ticket_profit, "Year and Month", "Ticket Profits")
 
 	return render_template("airline_staff_view_reports.html", period_string=period_string, plot_url_1=plot_url_1, plot_url_2=plot_url_2, empty=empty)
 

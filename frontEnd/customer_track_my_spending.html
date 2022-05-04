@@ -1,0 +1,62 @@
+<html>
+<head>
+<script>
+function hide_and_show() {
+    let f1, f2;
+    if (document.getElementById('customize').checked) {
+        f1 = "none";
+        f2 = "block";
+    }
+    else if (document.getElementById('default').checked) {
+        f1 = "block";
+        f2 = "none";
+    }
+    document.getElementById('default_display').style.display = f1;
+    document.getElementById('customize_display').style.display = f2;
+}
+</script>
+</head>
+<body>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
+
+<h2>Track Your Spending</h2>
+
+<h3> Select the Period You Want to View: </h3>
+<form action="/home/customer_track_my_spending" method="POST">
+    <div id="period_select" class="form_field">
+        <input type="radio" id="default" name="method_select" value="default" checked="checked" onclick="hide_and_show()">
+        <label for="month">Last 6 Months</label><br>
+        <input type="radio" id="customize" name="method_select" value="customize" onclick="hide_and_show()">
+        <label for="customize">Customize Time Range</label><br>
+
+        <div id="default_display" style="display: none;">
+        </div>
+        <div id="customize_display" style="display: none;">
+            <label for="start"> Purchase Date starts from: </label>
+            <input type="date" name="range_start" min="1971-01-01">
+            <label for="end"> Purchase Date ends at: </label>
+            <input type="date" name="range_end" min="1971-01-01">
+        </div>
+    <input type="submit" value = Search />
+</form>
+
+<h3> Spending Report {{period_string}}: </h3>
+
+{% if empty %}
+    {% for message in get_flashed_messages() %}
+    <h3>Warning: {{ message }}</h3>
+    {% endfor %}
+{% else %}
+<h4> Money Spent </h4>
+<img src="data:image/png;base64, {{ plot_url}}">
+
+{% endif %}
+
+</br>
+<a href="/home">Go back</a>
+</body>
+</html>
