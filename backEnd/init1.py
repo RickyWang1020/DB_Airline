@@ -1528,7 +1528,6 @@ def airline_staff_compare_revenue():
 		empty = None
 	return render_template("airline_staff_compare_revenue.html", period=period, pie_url=pie_url, empty=empty)
 
-
 # view top 3 destinations
 @app.route("/home/airline_staff_view_top_destination", methods=['GET','POST'])
 def airline_staff_view_top_destination():
@@ -1553,6 +1552,16 @@ def airline_staff_view_top_destination():
 	top_3_destination = cursor.fetchall()
 	cursor.close()
 	return render_template("airline_staff_view_top_destination.html", top_3_destination=top_3_destination, period=period)
+
+# grant new permissions: for admin staff
+@app.route("/home/airline_staff_grant_new_permission", methods=['GET','POST'])
+def airline_staff_grant_new_permission():
+	pass
+
+# add booking agents: for admin staff
+@app.route("/home/airline_staff_add_booking_agent", methods=['GET','POST'])
+def airline_staff_add_booking_agent():
+	pass
 
 
 ### Logout Operation ###
