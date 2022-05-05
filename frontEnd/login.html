@@ -10,8 +10,10 @@
 		<option value="booking_agent">Booking Agent</option>
 	</select>
 	<br>
-	<input type="text" name = "logname" placeholder="Email or Username" required/> </br>
-	<input type="password" name = "password" placeholder="Password" required/></br>
+	<input type="text" name = "logname" placeholder="Login Username" required/> [Please enter: Email (customer or booking agent) or Username (airline staff)]
+	</br> 
+	<input type="password" name = "password" placeholder="Password" required/>
+	</br>
 	<input type="submit" value = Login />
 
 	{% for message in get_flashed_messages() %}
