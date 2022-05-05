@@ -767,6 +767,10 @@ def booking_agent_purchase_tickets():
 		data_1 = cursor.fetchone()
 		cursor.execute(query_2, (airline_name, flight_num))
 		data_2 = cursor.fetchone()
+		# check if the customer exists
+		query = "SELECT * FROM customer WHERE email = %s"
+		cursor.execute(query, (email))
+		data_3 = cursor.fetchone()
 
 		if (not data_1):
 			# If the previous query returns data, then the flight exists
@@ -775,6 +779,10 @@ def booking_agent_purchase_tickets():
 		elif (not data_2):
 			# If the previous query returns data, then the flight exists
 			flash("Sorry! This flight has no seat left!")
+			error = True
+		elif (not data_3):
+			# If the previous query returns data, then the flight exists
+			flash("Sorry! This customer email is invalid!")
 			error = True
 
 		# if there is no detected error
@@ -814,7 +822,7 @@ def booking_agent_purchase_tickets():
 		app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
 
 	cursor.close()
-	return render_template("customer_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city, error=error)
+	return render_template("booking_agent_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city, error=error)
 
 
 # booking agent view my commission
@@ -885,7 +893,8 @@ def booking_agent_view_top_customers():
 	period_statement_1 = "(purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 6 MONTH) AND NOW())"
 	period_statement_2 = "(purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 YEAR) AND NOW())"
 
-	empty = None
+	empty_1 = None
+	empty_2 = None
 	plot_url_1 = None
 	plot_url_2 = None
 	# display the monthly ticket selling statistics based on the given period (customized range, or last year, or last month)
@@ -907,9 +916,8 @@ def booking_agent_view_top_customers():
 	cursor.close()
 
 	# process the fetched dictionary
-	if (not ticket_num_data) and (not total_commission_data):
-		flash("The Period You Selected Has NO Data, NO Bar Chart Available!")
-		empty = True
+	if (not ticket_num_data):
+		empty_1 = True
 	else:
 		ticket_num = []
 		customer_1 = []
@@ -918,7 +926,10 @@ def booking_agent_view_top_customers():
 			ticket_num.append(data["ticket_num"])
 			x_pos = np.arange(len(customer_1))
 		plot_url_1 = gen_bar_chart(x_pos, customer_1, ticket_num, "Customer Email", "Number of Tickets")
-
+	
+	if (not total_commission_data):
+		empty_2 = True
+	else:
 		total_commission = []
 		customer_2 = []
 		for data in total_commission_data:
@@ -927,7 +938,7 @@ def booking_agent_view_top_customers():
 			x_pos = np.arange(len(customer_2))
 		plot_url_2 = gen_bar_chart(x_pos, customer_2, total_commission, "Customer Email", "Total Commission")
 
-	return render_template("booking_agent_view_top_customers.html", plot_url_1=plot_url_1, plot_url_2=plot_url_2, empty=empty)
+	return render_template("booking_agent_view_top_customers.html", plot_url_1=plot_url_1, plot_url_2=plot_url_2, empty_1=empty_1, empty_2=empty_2)
 
 
 ### Airline Staff Functions ###
