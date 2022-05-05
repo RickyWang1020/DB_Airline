@@ -930,7 +930,6 @@ def booking_agent_view_top_customers():
 	return render_template("booking_agent_view_top_customers.html", plot_url_1=plot_url_1, plot_url_2=plot_url_2, empty=empty)
 
 
-
 ### Airline Staff Functions ###
 # view my flights
 @app.route("/home/airline_staff_view_my_flights", methods=['GET','POST'])
@@ -945,8 +944,8 @@ def airline_staff_view_my_flights():
 	# get the airline name that the staff belongs to
 	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
 	cursor.execute(query_1, (username))
-	airline_name = cursor.fetchone()
-	app.logger.info("airline name is %s", airline_name)
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
 
 	# default: get the upcoming flights of the airline for the next 30 days
 	query_2 = "SELECT airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id, GROUP_CONCAT(customer_email SEPARATOR ', ') as customers \
@@ -1019,7 +1018,7 @@ def airline_staff_view_my_flights():
 	query_2 += "GROUP BY airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id\
 		ORDER BY departure_time, arrival_time;"
 	app.logger.info("the query for flight is: %s", query_2)
-	cursor.execute(query_2, (airline_name["airline_name"]))
+	cursor.execute(query_2, (airline_name))
 	flights = cursor.fetchall()
 	cursor.close()
 
@@ -1385,7 +1384,6 @@ def airline_staff_view_frequent_customer():
 		selected_customer_idx = request.form["selected_customer"]
 		selected_customer_dict = customers[int(selected_customer_idx)]
 		customer_email = selected_customer_dict["customer_email"]
-		app.logger.info("the email is %s", customer_email)
 		# get all the purchased tickets of that customer
 		q1 = "SELECT purchase_date, flight_num, airplane_id, departure_airport, arrival_airport, departure_time, arrival_time, price, status \
 			FROM flight NATURAL JOIN ticket NATURAL JOIN purchases WHERE customer_email = %s ORDER BY purchase_date;"
@@ -1556,7 +1554,97 @@ def airline_staff_view_top_destination():
 # grant new permissions: for admin staff
 @app.route("/home/airline_staff_grant_new_permission", methods=['GET','POST'])
 def airline_staff_grant_new_permission():
-	pass
+	username = session['logname']
+	is_admin = check_permission(username, 'admin')
+	# if not admin, then refuse to do this
+	if (not is_admin):
+		flash("Unauthorized Operation: You do not have Admin Permission!")
+		return redirect(url_for("home"))
+	
+	# get the airline name that the staff belongs to
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
+
+	# select all the airline staff in this airline, so that the admin can choose
+	query_2 = "SELECT DISTINCT username FROM airline_staff WHERE airline_name = %s ORDER BY username;"
+	cursor.execute(query_2, (airline_name))
+	staff_lst = cursor.fetchall()
+
+	error = None
+	# receive the inputs of updating a staff's permission
+	if request.method == "POST":
+		selected_staff_idx = request.form["selected_staff"]
+		selected_staff_dict = staff_lst[int(selected_staff_idx)]
+		staff_username = selected_staff_dict["username"]
+		permission = request.form["permission"]
+		op = request.form["op"]
+
+		# operation 1: adding permission
+		if op == "add":
+			# first check if the selected staff already has such permission
+			q1 = "SELECT * FROM permission p NATURAL JOIN airline_staff a \
+				WHERE a.username = %s AND a.airline_name = %s AND p.permission_type = %s;"
+			cursor.execute(q1, (staff_username, airline_name, permission))
+			d1 = cursor.fetchone()
+			if d1:
+				flash("The Staff {} already has {} Permission!".format(staff_username, permission))
+				error = True
+			# if there is no error, then grant the staff the permission
+			else:
+				ins = "INSERT INTO permission VALUES (%s, %s);"
+				cursor.execute(ins, (staff_username, permission))
+				conn.commit()
+				flash("You have Added {} Permission for Staff {}!".format(permission, staff_username))
+
+		# operation 2: deleting permission
+		elif op == "del":
+			# first check if the selected staff has such a permission
+			q1 = "SELECT * FROM permission p NATURAL JOIN airline_staff a \
+				WHERE a.username = %s AND a.airline_name = %s AND p.permission_type = %s;"
+			cursor.execute(q1, (staff_username, airline_name, permission))
+			d1 = cursor.fetchone()
+			if (not d1):
+				flash("The Staff {} DOES NOT have {} Permission, UNABLE to Delete Permission!".format(staff_username, permission))
+				error = True
+			# then check if this is the last admin to delete: if so, reject the deletion
+			if permission == "admin":
+				q2 = "SELECT COUNT(*) AS admin_count FROM permission p NATURAL JOIN airline_staff a \
+					WHERE a.airline_name = %s AND p.permission_type = %s;"
+				cursor.execute(q2, (airline_name, permission))
+				d2 = cursor.fetchone()
+				if d2["admin_count"] == 1:
+					q3 = "SELECT * FROM permission p NATURAL JOIN airline_staff a \
+						WHERE a.airline_name = %s AND a.username = %s AND p.permission_type = %s;"
+					cursor.execute(q3, (airline_name, staff_username, permission))
+					d3 = cursor.fetchone()
+					if d3:
+						flash("The Staff {} is the only ONE Admin in this Airline! UNABLE to Delete!".format(staff_username))
+						error = True
+			# then delete the permission from the staff
+			if (not error):
+				delete = "DELETE FROM permission WHERE username = %s AND permission_type = %s;"
+				cursor.execute(delete, (staff_username, permission))
+				conn.commit()
+				flash("You have Deleted {} Permission from Staff {}!".format(permission, staff_username))
+
+	# get all the admin and operator staff in the airline
+	query_3_admin = "SELECT a.username AS staff_username, a.first_name AS staff_first, a.last_name AS staff_last \
+		FROM airline_staff a NATURAL JOIN permission p \
+		WHERE a.airline_name = %s AND p.permission_type = \'admin\';"
+	cursor.execute(query_3_admin, (airline_name))
+	admin_staff = cursor.fetchall()
+
+	query_3_operator = "SELECT a.username AS staff_username, a.first_name AS staff_first, a.last_name AS staff_last \
+		FROM airline_staff a NATURAL JOIN permission p \
+		WHERE a.airline_name = %s AND p.permission_type = \'operator\';"
+	cursor.execute(query_3_operator, (airline_name))
+	operator_staff = cursor.fetchall()
+	cursor.close()
+
+	return render_template("airline_staff_grant_new_permission.html", staff_lst=staff_lst, admin_staff=admin_staff, operator_staff=operator_staff, error=error)
 
 # add booking agents: for admin staff
 @app.route("/home/airline_staff_add_booking_agent", methods=['GET','POST'])

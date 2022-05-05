@@ -1,0 +1,82 @@
+<html>
+<head>
+</head>
+<body>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
+
+<h2>Grant New Permission to Airline Staff</h2>
+
+<h3> Current Staff in Your Airline with Permissions: </h3>
+<h4>Admin Permission: </h4>
+<table>
+    <th>Staff Username</th>
+	<th>First Name</th>
+    <th>Last Name</th>
+
+    {% for line in admin_staff %}
+	<tr>
+		<td>{{line['staff_username']}}</td>
+		<td>{{line['staff_first']}}</td>
+		<td>{{line['staff_last']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+<h4>Operator Permission: </h4>
+<table>
+    <th>Staff Username</th>
+	<th>First Name</th>
+    <th>Last Name</th>
+
+    {% for line in operator_staff %}
+	<tr>
+		<td>{{line['staff_username']}}</td>
+		<td>{{line['staff_first']}}</td>
+		<td>{{line['staff_last']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+<h3> Add or Delete Staff's Permission:</h3>
+<form action="/home/airline_staff_grant_new_permission" method="POST">
+	<select name="op" required>
+		<option value="">--Select an Operation--</option>
+		<option value="add">Add a Permission</option>
+		<option value="del">Delete a Permission</option>
+	</select>
+    <br>
+    <select name="permission" required>
+		<option value="">--Select a Permission--</option>
+		<option value="admin">Admin</option>
+		<option value="operator">Operator</option>
+	</select>
+    <br>
+	<select name="selected_staff" required>
+        <option value="">--Select Staff in Your Airline--</option>
+        {% for s in staff_lst %}
+        <option value={{loop.index0}}> {{s['username']}} </option>
+        {% endfor %} 
+	</select>
+	<br>
+    <input type="submit" value = Submit />
+
+    {% if error %}
+        {% for message in get_flashed_messages() %}
+        <h3>Error: {{ message }}</h3>
+        {% endfor %}
+    {% else %}
+        {% for message in get_flashed_messages() %}
+        <h3>Success! {{ message }}</h3>
+        {% endfor %}
+    {% endif %}
+</form>
+
+
+</br>
+<a href="/home">Go back</a>
+</body>
+</html>
