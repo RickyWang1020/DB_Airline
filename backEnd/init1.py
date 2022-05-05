@@ -154,7 +154,7 @@ def registerCustomerAuth():
 	# stores the results in a variable
 	data = cursor.fetchone()
 	# use fetchall() if you are expecting more than 1 data row
-	if(phone_number<0):
+	if int(phone_number) < 0:
 		flash("Your phone number should not be negative")
 		return render_template('register_customer.html')
 	elif (passport_expiration<=date_of_birth):
@@ -190,7 +190,7 @@ def registerBookingAgentAuth():
 	# stores the results in a variable
 	data_2 = cursor.fetchone()
 	# use fetchall() if you are expecting more than 1 data row
-	if (booking_agent_id<0):
+	if int(booking_agent_id) < 0:
 		#If the previous query returns data, then user exists
 		flash("Booking agent id should not be negative")
 		return render_template('register_booking_agent.html')
@@ -1649,7 +1649,76 @@ def airline_staff_grant_new_permission():
 # add booking agents: for admin staff
 @app.route("/home/airline_staff_add_booking_agent", methods=['GET','POST'])
 def airline_staff_add_booking_agent():
-	pass
+	username = session['logname']
+	is_admin = check_permission(username, 'admin')
+	# if not admin, then refuse to do this
+	if (not is_admin):
+		flash("Unauthorized Operation: You do not have Admin Permission!")
+		return redirect(url_for("home"))
+	
+	# get the airline name that the staff belongs to
+	cursor = conn.cursor()
+	query_1 = "SELECT airline_name FROM airline_staff WHERE username = %s;"
+	cursor.execute(query_1, (username))
+	airline_name_data = cursor.fetchone()
+	airline_name = airline_name_data["airline_name"]
+
+	# select all the booking agents in the system, for further making choices
+	query_2 = "SELECT DISTINCT email FROM booking_agent ORDER BY email;"
+	cursor.execute(query_2)
+	booking_agent_lst = cursor.fetchall()
+
+	error = None
+	# receive the inputs of updating a booking agent to work for this airline
+	if request.method == "POST":
+		selected_agent_idx = request.form["selected_agent"]
+		selected_agent_dict = booking_agent_lst[int(selected_agent_idx)]
+		booking_agent_email = selected_agent_dict["email"]
+		op = request.form["op"]
+
+		# operation 1: adding the booking agent to work for this airline
+		if op == "add":
+			# first check if the current booking agent already works for the airline
+			q1 = "SELECT * FROM booking_agent b NATURAL JOIN booking_agent_work_for w \
+				WHERE b.email = %s AND w.airline_name = %s;"
+			cursor.execute(q1, (booking_agent_email, airline_name))
+			d1 = cursor.fetchone()
+			if d1:
+				flash("The Booking Agent {} already works for Your Airline!".format(booking_agent_email))
+				error = True
+			# if there is no error, then add the booking agent to work for the airline
+			else:
+				ins = "INSERT INTO booking_agent_work_for VALUES (%s, %s);"
+				cursor.execute(ins, (booking_agent_email, airline_name))
+				conn.commit()
+				flash("You have Added Booking Agent {} to work for Your Airline!".format(booking_agent_email))
+
+		# operation 2: remove this booking agent from working for this airline
+		elif op == "del":
+			# first check if the current booking agent is working for the airline
+			q1 = "SELECT * FROM booking_agent b NATURAL JOIN booking_agent_work_for w \
+				WHERE b.email = %s AND w.airline_name = %s;"
+			cursor.execute(q1, (booking_agent_email, airline_name))
+			d1 = cursor.fetchone()
+			if (not d1):
+				flash("The Booking Agent {} DOES NOT work for Your Airline! UNABLE to Delete!".format(booking_agent_email))
+				error = True
+			# if there is no error, then delete the booking agent from working for this airline
+			else:
+				delete = "DELETE FROM booking_agent_work_for WHERE email = %s AND airline_name = %s;"
+				cursor.execute(delete, (booking_agent_email, airline_name))
+				conn.commit()
+				flash("You have Deleted {} from working for Your Airline!".format(booking_agent_email))
+
+	# get all the booking agents currently working for this airline and display them on the webpage
+	query_3 = "SELECT b.email AS agent_email, b.booking_agent_id AS agent_id \
+		FROM booking_agent b NATURAL JOIN booking_agent_work_for w \
+		WHERE w.airline_name = %s;"
+	cursor.execute(query_3, (airline_name))
+	work_agent = cursor.fetchall()
+	cursor.close()
+
+	return render_template("airline_staff_add_booking_agent.html", booking_agent_lst=booking_agent_lst, work_agent=work_agent, error=error)
 
 
 ### Logout Operation ###

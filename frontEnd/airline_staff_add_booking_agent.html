@@ -1,0 +1,58 @@
+<html>
+<head>
+</head>
+<body>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
+
+<h2>Add/Delete Booking Agents for My Airline</h2>
+
+<h3> Current Booking Agents Working For Your Airline: </h3>
+<table>
+    <th>Booking Agent Email</th>
+	<th>Booking Agent ID</th>
+
+    {% for line in work_agent %}
+	<tr>
+		<td>{{line['agent_email']}}</td>
+		<td>{{line['agent_id']}}</td>
+	</tr>
+    {% endfor %}
+</table>
+
+<h3> Add or Delete Booking Agent:</h3>
+<form action="/home/airline_staff_add_booking_agent" method="POST">
+	<select name="op" required>
+		<option value="">--Select an Operation--</option>
+		<option value="add">Add a Booking Agent</option>
+		<option value="del">Delete a Booking Agent</option>
+	</select>
+    <br>
+	<select name="selected_agent" required>
+        <option value="">--Select a Booking Agent--</option>
+        {% for b in booking_agent_lst %}
+        <option value={{loop.index0}}> {{b['email']}} </option>
+        {% endfor %} 
+	</select>
+	<br>
+    <input type="submit" value = Submit />
+
+    {% if error %}
+        {% for message in get_flashed_messages() %}
+        <h3>Error: {{ message }}</h3>
+        {% endfor %}
+    {% else %}
+        {% for message in get_flashed_messages() %}
+        <h3>Success! {{ message }}</h3>
+        {% endfor %}
+    {% endif %}
+</form>
+
+
+</br>
+<a href="/home">Go back</a>
+</body>
+</html>
