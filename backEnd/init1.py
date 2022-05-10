@@ -65,9 +65,83 @@ def check_permission(username, perm_to_check):
 
 ### Start of the Webpage Design ###
 # Define a route to hello function
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def hello():
-	return render_template('index.html')
+	cursor = conn.cursor()
+	# default: get the upcoming flights of the airline for the next 30 days
+	query_1 = "SELECT * \
+		FROM flight \
+	    WHERE True "
+	time_range_statement = "AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
+
+	# get source/destination airports/city, for customized selections
+	query_2 = "SELECT DISTINCT f.departure_airport AS depart_airport, a.airport_city AS departure_city FROM flight f JOIN airport a ON (f.departure_airport = a.airport_name)"
+	cursor.execute(query_2)
+	departure_airport_city = cursor.fetchall()
+	query_3 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
+	cursor.execute(query_3)
+	arrival_airport_city = cursor.fetchall()
+	app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
+
+	if request.method == "POST":
+		# get from the form result: the range of dates that the staff wants to check
+		start_date = request.form["range_start"]
+		end_date = request.form["range_end"]
+
+		# get from the form result: the departure and arrival city/ airport
+		departure = []
+		for i in range(len(departure_airport_city)):
+			try:
+				data = request.form["departure: " + str(i)]
+				departure.append(departure_airport_city[i])
+			except:
+				pass
+		arrival = []
+		for j in range(len(arrival_airport_city)):
+			try:
+				data = request.form["arrival: " + str(j)]
+				arrival.append(arrival_airport_city[j])
+			except:
+				pass
+		app.logger.info("the submitted data is %s, %s, %s, %s", start_date, end_date, departure, arrival)
+
+		# prepare the query for filtered search
+		# the departure date range selection
+		if start_date and end_date:
+			time_range_statement = "AND DATE(departure_time) BETWEEN \'{}\' AND \'{}\' ".format(start_date, end_date)
+		elif start_date:
+			time_range_statement = "AND DATE(departure_time) >= \'{}\' ".format(start_date)
+		elif end_date:
+			time_range_statement = "AND DATE(departure_time) <= \'{}\' ".format(end_date)
+		else:
+			time_range_statement = " "
+
+		# the departure/arrival airport selection
+		if departure:
+			departure_statement = ""
+			for d in departure:
+				departure_statement += "\'" + d["depart_airport"].replace("\'", "\\\'") + "\'" + ", "
+			departure_statement = departure_statement.strip(", ")
+			departure_statement = "(" + departure_statement + ") "
+			app.logger.info("departure statement: %s", departure_statement)
+			query_1 += "AND departure_airport IN " + departure_statement
+		if arrival:
+			arrival_statement = ""
+			for a in arrival:
+				arrival_statement += "\'" + a["arr_airport"].replace("\'", "\\\'") + "\'" + ", "
+			arrival_statement = arrival_statement.strip(", ")
+			arrival_statement = "(" + arrival_statement + ") "
+			app.logger.info("arrival_statement statement: %s", arrival_statement)
+			query_1 += "AND arrival_airport IN " + arrival_statement
+
+	# now execute the flight search query to get the filtered (if applicable) search result
+	query_1 += time_range_statement
+	query_1 += "ORDER BY departure_time, arrival_time;"
+	app.logger.info("the query for flight is: %s", query_1)
+	cursor.execute(query_1)
+	flights = cursor.fetchall()
+	cursor.close()
+	return render_template('index.html', flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city)
 
 
 ### Login Operations ###
@@ -457,7 +531,7 @@ def customer_purchase_tickets():
 		flight_num = request.form["flight_num"]
 
 		# first check if there the given flight_num already exists
-		query_1 = "SELECT ticket_id FROM ticket WHERE airline_name = %s AND flight_num = %s"
+		query_1 = "SELECT * FROM flight WHERE airline_name = %s AND flight_num = %s"
 		# then check if there are seats left
 		query_2 = "SELECT ticket_id FROM ticket WHERE airline_name = %s AND flight_num = %s AND ticket_id NOT IN (SELECT ticket_id FROM purchases)"
 		cursor.execute(query_1, (airline_name, flight_num))
@@ -513,11 +587,9 @@ def customer_purchase_tickets():
 	cursor.close()
 	return render_template("customer_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city, error=error)
 
-
 # customer track my spending
 @app.route("/home/customer_track_my_spending", methods=['GET', 'POST'])
 def customer_track_my_spending():
-	# get the airline name that the staff belongs to
 	email = session['logname']
 	cursor = conn.cursor()
 

@@ -2,36 +2,81 @@
 <html>
 
 <head>
-
 </head>
 
 <body>
-{% if not message %}
-	<h1>Airline Ticket Booking System</h1>
-	Already Have an Account? 
-	<a href="/login">Login</a>
-	<br><br>
-	New User? 
-	<a href="/register">Register</a>
-{% endif %}
 
-{% if message %}
-	<a href="/logout">Logout</a>
-	<a href="/remove_account">Remove Account</a>
-	<p class="message">You are logged in {{message}}. You have {{num}} follower(s)</p> </br>
-	<a href="/tweets">View your tweets</a> </br>
-	<a href="/find_people">Find people to follow</a> </br>
-	<a href="/unfollow">Unfollow someone</a> </br>
-	<a href="/view_followed">View people you have followed</a> </br>
-	</br>
+<style type="text/css">
+	table, th, td{
+		border: 0.5px solid black;
+	}
+</style>
 
-        <h4>15 most recent tweets from you and your followers </h4> </br>
+<h1>Airline Ticket Booking System</h1>
+<h2>Login & Register</h2>
+Already Have an Account? 
+<a href="/login">Login</a>
+<br><br>
+New User? 
+<a href="/register">Register</a>
 
-	{% for line in tweets%}
-	        <p>{{line}}</p>
-	        <hr>
-	{% endfor %}
-	{% endif %}
+</br></br>
+
+<h2>View Flights Info</h2>
+<h3> Filters: </h3>
+<form action="/" method="POST">
+    <label for="start">Departure date starts from:</label>
+    <input type="date" name="range_start" min="1971-01-01">
+    </br>
+    <label for="end">Departure date ends at:</label>
+    <input type="date" name="range_end" min="1971-01-01">
+
+    <p>
+        <label for="departure">Departure City and Airport:</label>
+        {% for d in departure_airport_city %}
+        <input type="checkbox" name="departure: {{loop.index0}}">{{d['departure_city']}}, {{d['depart_airport']}}
+        {% endfor %}
+    </p>
+
+    <p>
+        <label for="arrival">Arrival City and Airport:</label>
+        {% for a in arrival_airport_city %}
+        <input type="checkbox" name="arrival: {{loop.index0}}">{{a['arrival_city']}}, {{a['arr_airport']}}
+        {% endfor %}
+    </p>
+
+    <input type="submit" value = submit />
+</form>
+
+<h3> Search Results: </h3>
+<table>
+    <th>Airline Name</th>
+	<th>Flight Number</th>
+    <th>Departure Airport</th>
+    <th>Arrival Airport</th>
+    <th>Departure Time</th>
+    <th>Arrival Time</th>
+    <th>Price</th>
+    <th>Status</th>
+    <th>Airplane ID</th>
+
+    {% for line in flights %}
+	<tr>
+		<td>{{line['airline_name']}}</td>
+		<td>{{line['flight_num']}}</td>
+		<td>{{line['departure_airport']}}</td>
+		<td>{{line['arrival_airport']}}</td>
+		<td>{{line['departure_time']}}</td>
+		<td>{{line['arrival_time']}}</td>
+		<td>{{line['price']}}</td>
+		<td>{{line['status']}}</td>
+        <td>{{line['airplane_id']}}</td>
+
+	</tr>
+    {% endfor %}
+</table>
+</br>
+
+
 </body>
-
 </html>
