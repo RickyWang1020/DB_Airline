@@ -915,7 +915,7 @@ def booking_agent_view_my_commission():
 	query_1 = "SELECT SUM(price)/10 AS total_commission, COUNT(*) AS ticket_num, AVG(price)/10 AS avg_commission \
 		FROM flight NATURAL JOIN (ticket NATURAL JOIN purchases) \
 		WHERE booking_agent_id = %s "
-	time_range_statement = "AND (departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')) "
+	time_range_statement = "AND (purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 MONTH) AND NOW()) "
 
 
 	if request.method == "POST":
@@ -926,13 +926,11 @@ def booking_agent_view_my_commission():
 		# prepare the query for filtered search
 		# the departure date range selection
 		if start_date and end_date:
-			time_range_statement = "AND DATE(departure_time) BETWEEN \'{}\' AND \'{}\' ".format(start_date, end_date)
+			time_range_statement = "AND purchase_date BETWEEN \'{}\' AND \'{}\' ".format(start_date, end_date)
 		elif start_date:
-			time_range_statement = "AND DATE(departure_time) >= \'{}\' ".format(start_date)
+			time_range_statement = "AND purchase_date >= \'{}\' ".format(start_date)
 		elif end_date:
-			time_range_statement = "AND DATE(departure_time) <= \'{}\' ".format(end_date)
-		else:
-			time_range_statement = " "
+			time_range_statement = "AND purchase_date <= \'{}\' ".format(end_date)
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
@@ -944,7 +942,7 @@ def booking_agent_view_my_commission():
 	ticket_num = commission_data[0]["ticket_num"]
 	avg_commission = commission_data[0]["avg_commission"]
 	if (total_commission == None):
-		commission = 0
+		total_commission = 0
 		ticket_num = 0
 		avg_commission = 0
 
