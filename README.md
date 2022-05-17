@@ -21,7 +21,7 @@ It serves as the Final Project for Databases course Spring 2022, NYU Shanghai.
   - *init1.py*: the main file for launching the backend of the airline ticket system
   - *load_data_demo.sql*: sql file for loading test data in the database
   - *use_case_query.md*: the file that lists all the use cases and the queries executed by them
-- frontEnd: the folder containing all frontend rendering of the system, each file's name corresponds to its functionality
+- frontEnd: the folder containing all frontend rendering of the system, each file corresponds to the functionality as its filename suggests
   - *airline_staff_add_airplane.html*
   - *airline_staff_add_airport.html*
   - *airline_staff_add_booking_agent.html*
