@@ -81,7 +81,6 @@ def hello():
 	query_3 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
 	cursor.execute(query_3)
 	arrival_airport_city = cursor.fetchall()
-	app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
 
 	if request.method == "POST":
 		# get from the form result: the range of dates that the staff wants to check
@@ -103,7 +102,6 @@ def hello():
 				arrival.append(arrival_airport_city[j])
 			except:
 				pass
-		app.logger.info("the submitted data is %s, %s, %s, %s", start_date, end_date, departure, arrival)
 
 		# prepare the query for filtered search
 		# the departure date range selection
@@ -123,7 +121,6 @@ def hello():
 				departure_statement += "\'" + d["depart_airport"].replace("\'", "\\\'") + "\'" + ", "
 			departure_statement = departure_statement.strip(", ")
 			departure_statement = "(" + departure_statement + ") "
-			app.logger.info("departure statement: %s", departure_statement)
 			query_1 += "AND departure_airport IN " + departure_statement
 		if arrival:
 			arrival_statement = ""
@@ -131,13 +128,11 @@ def hello():
 				arrival_statement += "\'" + a["arr_airport"].replace("\'", "\\\'") + "\'" + ", "
 			arrival_statement = arrival_statement.strip(", ")
 			arrival_statement = "(" + arrival_statement + ") "
-			app.logger.info("arrival_statement statement: %s", arrival_statement)
 			query_1 += "AND arrival_airport IN " + arrival_statement
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
 	query_1 += "ORDER BY departure_time, arrival_time;"
-	app.logger.info("the query for flight is: %s", query_1)
 	cursor.execute(query_1)
 	flights = cursor.fetchall()
 	cursor.close()
@@ -155,7 +150,7 @@ def login():
 def loginAuth():
 	# grabs information from the forms
 	usertype = request.form.get('usertype')
-	app.logger.info(usertype)
+	# app.logger.info(usertype)
 	logname = request.form['logname'] # the logname means email (for customer, agent) or username (for airline staff)
 	password = request.form['password']
 
@@ -324,7 +319,7 @@ def home():
 
 	# get the customer's information and enter the customer's home page
 	if (usertype == "customer"):
-		app.logger.info("Customer: %s", logname)
+		# app.logger.info("Customer: %s", logname)
 		cursor = conn.cursor()
 		query = 'SELECT * FROM customer WHERE email = %s;'
 		cursor.execute(query, (logname))
@@ -334,7 +329,7 @@ def home():
 		return render_template('home_customer.html', name=customer_name, data=customer_data)
 	# get the airline staff's information and enter the airlie staff's home page
 	elif (usertype == "airline_staff"):
-		app.logger.info("Airline staff: %s", logname)
+		# app.logger.info("Airline staff: %s", logname)
 		cursor = conn.cursor()
 		query = 'SELECT first_name, last_name FROM airline_staff WHERE username = %s;'
 		cursor.execute(query, (logname))
@@ -344,7 +339,7 @@ def home():
 		return render_template('home_airline_staff.html', name=staff_name)
 	# get the booking agent's information and enter the booking agent's home page
 	elif (usertype == "booking_agent"):
-		app.logger.info("Booking agent: %s", logname)
+		# app.logger.info("Booking agent: %s", logname)
 		return render_template('home_booking_agent.html', name=logname)
 	else:
 		return redirect('/')
@@ -374,7 +369,6 @@ def customer_view_my_flights():
 	query_3 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
 	cursor.execute(query_3)
 	arrival_airport_city = cursor.fetchall()
-	app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
 
 	if request.method == "POST":
 		# get from the form result: the range of dates that the staff wants to check
@@ -396,7 +390,6 @@ def customer_view_my_flights():
 				arrival.append(arrival_airport_city[j])
 			except:
 				pass
-		app.logger.info("the submitted data is %s, %s, %s, %s", start_date, end_date, departure, arrival)
 
 		# prepare the query for filtered search
 		# the departure date range selection
@@ -416,7 +409,6 @@ def customer_view_my_flights():
 				departure_statement += "\'" + d["depart_airport"].replace("\'", "\\\'") + "\'" + ", "
 			departure_statement = departure_statement.strip(", ")
 			departure_statement = "(" + departure_statement + ") "
-			app.logger.info("departure statement: %s", departure_statement)
 			query_1 += "AND departure_airport IN " + departure_statement
 		if arrival:
 			arrival_statement = ""
@@ -424,13 +416,11 @@ def customer_view_my_flights():
 				arrival_statement += "\'" + a["arr_airport"].replace("\'", "\\\'") + "\'" + ", "
 			arrival_statement = arrival_statement.strip(", ")
 			arrival_statement = "(" + arrival_statement + ") "
-			app.logger.info("arrival_statement statement: %s", arrival_statement)
 			query_1 += "AND arrival_airport IN " + arrival_statement
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
 	query_1 += "ORDER BY departure_time, arrival_time;"
-	app.logger.info("the query for flight is: %s", query_1)
 	cursor.execute(query_1, (customer_email))
 	flights = cursor.fetchall()
 	cursor.close()
@@ -457,7 +447,6 @@ def customer_search_for_flights():
 	query_3 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
 	cursor.execute(query_3)
 	arrival_airport_city = cursor.fetchall()
-	app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
 
 	if request.method == "POST":
 		# get from the form result: the range of dates that the staff wants to check
@@ -479,7 +468,6 @@ def customer_search_for_flights():
 				arrival.append(arrival_airport_city[j])
 			except:
 				pass
-		app.logger.info("the submitted data is %s, %s, %s, %s", start_date, end_date, departure, arrival)
 
 		# prepare the query for filtered search
 		# the departure date range selection
@@ -499,7 +487,6 @@ def customer_search_for_flights():
 				departure_statement += "\'" + d["depart_airport"].replace("\'", "\\\'") + "\'" + ", "
 			departure_statement = departure_statement.strip(", ")
 			departure_statement = "(" + departure_statement + ") "
-			app.logger.info("departure statement: %s", departure_statement)
 			query_1 += "AND departure_airport IN " + departure_statement
 		if arrival:
 			arrival_statement = ""
@@ -507,13 +494,11 @@ def customer_search_for_flights():
 				arrival_statement += "\'" + a["arr_airport"].replace("\'", "\\\'") + "\'" + ", "
 			arrival_statement = arrival_statement.strip(", ")
 			arrival_statement = "(" + arrival_statement + ") "
-			app.logger.info("arrival_statement statement: %s", arrival_statement)
 			query_1 += "AND arrival_airport IN " + arrival_statement
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
 	query_1 += "ORDER BY departure_time, arrival_time;"
-	app.logger.info("the query for flight is: %s", query_1)
 	cursor.execute(query_1)
 	flights = cursor.fetchall()
 	cursor.close()
@@ -558,7 +543,6 @@ def customer_purchase_tickets():
 			# get the current date as purchase_date
 			cur_time = str(datetime.now())
 			cur_date = cur_time.split()[0]
-			app.logger.info("purchase date is %s", cur_date)
 			# add the purchase to database
 			ins = "INSERT INTO purchases VALUES (%s, %s, NULL, %s);"
 			cursor.execute(ins, (ticket_id, username, cur_date))
@@ -572,7 +556,6 @@ def customer_purchase_tickets():
 		time_range_statement = "AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
 		query_4 += time_range_statement
 		query_4 += "ORDER BY departure_time, arrival_time;"
-		# app.logger.info("the query for flight is: %s", query_4)
 		cursor.execute(query_4)
 		flights = cursor.fetchall()
 		# get source/destination airports/city, for customized selections
@@ -582,7 +565,6 @@ def customer_purchase_tickets():
 		query_6 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
 		cursor.execute(query_6)
 		arrival_airport_city = cursor.fetchall()
-		app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
 
 	cursor.close()
 	return render_template("customer_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city, error=error)
@@ -670,7 +652,6 @@ def booking_agent_view_my_flights():
 	query_3 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
 	cursor.execute(query_3)
 	arrival_airport_city = cursor.fetchall()
-	app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
 
 	if request.method == "POST":
 		# get from the form result: the range of dates that the staff wants to check
@@ -692,7 +673,6 @@ def booking_agent_view_my_flights():
 				arrival.append(arrival_airport_city[j])
 			except:
 				pass
-		app.logger.info("the submitted data is %s, %s, %s, %s", start_date, end_date, departure, arrival)
 
 		# prepare the query for filtered search
 		# the departure date range selection
@@ -712,7 +692,6 @@ def booking_agent_view_my_flights():
 				departure_statement += "\'" + d["depart_airport"].replace("\'", "\\\'") + "\'" + ", "
 			departure_statement = departure_statement.strip(", ")
 			departure_statement = "(" + departure_statement + ") "
-			app.logger.info("departure statement: %s", departure_statement)
 			query_1 += "AND departure_airport IN " + departure_statement
 		if arrival:
 			arrival_statement = ""
@@ -720,13 +699,11 @@ def booking_agent_view_my_flights():
 				arrival_statement += "\'" + a["arr_airport"].replace("\'", "\\\'") + "\'" + ", "
 			arrival_statement = arrival_statement.strip(", ")
 			arrival_statement = "(" + arrival_statement + ") "
-			app.logger.info("arrival_statement statement: %s", arrival_statement)
 			query_1 += "AND arrival_airport IN " + arrival_statement
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
 	query_1 += "ORDER BY departure_time, arrival_time;"
-	app.logger.info("the query for flight is: %s", query_1)
 	cursor.execute(query_1, (booking_agent_id))
 	flights = cursor.fetchall()
 	cursor.close()
@@ -753,7 +730,6 @@ def booking_agent_search_for_flights():
 	query_3 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
 	cursor.execute(query_3)
 	arrival_airport_city = cursor.fetchall()
-	app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
 
 	if request.method == "POST":
 		# get from the form result: the range of dates that the staff wants to check
@@ -775,7 +751,6 @@ def booking_agent_search_for_flights():
 				arrival.append(arrival_airport_city[j])
 			except:
 				pass
-		app.logger.info("the submitted data is %s, %s, %s, %s", start_date, end_date, departure, arrival)
 
 		# prepare the query for filtered search
 		# the departure date range selection
@@ -795,7 +770,6 @@ def booking_agent_search_for_flights():
 				departure_statement += "\'" + d["depart_airport"].replace("\'", "\\\'") + "\'" + ", "
 			departure_statement = departure_statement.strip(", ")
 			departure_statement = "(" + departure_statement + ") "
-			app.logger.info("departure statement: %s", departure_statement)
 			query_1 += "AND departure_airport IN " + departure_statement
 		if arrival:
 			arrival_statement = ""
@@ -803,13 +777,11 @@ def booking_agent_search_for_flights():
 				arrival_statement += "\'" + a["arr_airport"].replace("\'", "\\\'") + "\'" + ", "
 			arrival_statement = arrival_statement.strip(", ")
 			arrival_statement = "(" + arrival_statement + ") "
-			app.logger.info("arrival_statement statement: %s", arrival_statement)
 			query_1 += "AND arrival_airport IN " + arrival_statement
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
 	query_1 += "ORDER BY departure_time, arrival_time;"
-	app.logger.info("the query for flight is: %s", query_1)
 	cursor.execute(query_1)
 	flights = cursor.fetchall()
 	cursor.close()
@@ -867,7 +839,6 @@ def booking_agent_purchase_tickets():
 			# get the current date as purchase_date
 			cur_time = str(datetime.now())
 			cur_date = cur_time.split()[0]
-			app.logger.info("purchase date is %s", cur_date)
 			# add the purchase to database
 			ins = "INSERT INTO purchases VALUES (%s, %s, %s, %s);"
 			cursor.execute(ins, (ticket_id, email, booking_agent_id, cur_date))
@@ -881,7 +852,6 @@ def booking_agent_purchase_tickets():
 		time_range_statement = "AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0') "
 		query_4 += time_range_statement
 		query_4 += "ORDER BY departure_time, arrival_time;"
-		# app.logger.info("the query for flight is: %s", query_4)
 		cursor.execute(query_4)
 		flights = cursor.fetchall()
 		# get source/destination airports/city, for customized selections
@@ -891,7 +861,6 @@ def booking_agent_purchase_tickets():
 		query_6 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
 		cursor.execute(query_6)
 		arrival_airport_city = cursor.fetchall()
-		app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
 
 	cursor.close()
 	return render_template("booking_agent_search_for_flights.html", flights=flights, departure_airport_city=departure_airport_city, arrival_airport_city=arrival_airport_city, error=error)
@@ -934,7 +903,6 @@ def booking_agent_view_my_commission():
 
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_1 += time_range_statement
-	app.logger.info("the query is: %s", query_1)
 	cursor.execute(query_1, (booking_agent_id))
 	commission_data = cursor.fetchall()
 	cursor.close()
@@ -1041,7 +1009,6 @@ def airline_staff_view_my_flights():
 	query_4 = "SELECT DISTINCT f.arrival_airport AS arr_airport, a.airport_city AS arrival_city FROM flight f JOIN airport a ON (f.arrival_airport = a.airport_name)"
 	cursor.execute(query_4)
 	arrival_airport_city = cursor.fetchall()
-	app.logger.info("depart is %s, arrival is %s", departure_airport_city, arrival_airport_city)
 
 	if request.method == "POST":
 		# get from the form result: the range of dates that the staff wants to check
@@ -1063,7 +1030,6 @@ def airline_staff_view_my_flights():
 				arrival.append(arrival_airport_city[j])
 			except:
 				pass
-		app.logger.info("the submitted data is %s, %s, %s, %s", start_date, end_date, departure, arrival)
 
 		# prepare the query for filtered search
 		# the departure date range selection
@@ -1083,7 +1049,6 @@ def airline_staff_view_my_flights():
 				departure_statement += "\'" + d["depart_airport"].replace("\'", "\\\'") + "\'" + ", "
 			departure_statement = departure_statement.strip(", ")
 			departure_statement = "(" + departure_statement + ") "
-			app.logger.info("departure statement: %s", departure_statement)
 			query_2 += "AND departure_airport IN " + departure_statement
 		if arrival:
 			arrival_statement = ""
@@ -1091,14 +1056,12 @@ def airline_staff_view_my_flights():
 				arrival_statement += "\'" + a["arr_airport"].replace("\'", "\\\'") + "\'" + ", "
 			arrival_statement = arrival_statement.strip(", ")
 			arrival_statement = "(" + arrival_statement + ") "
-			app.logger.info("arrival_statement statement: %s", arrival_statement)
 			query_2 += "AND arrival_airport IN " + arrival_statement
 				
 	# now execute the flight search query to get the filtered (if applicable) search result
 	query_2 += time_range_statement
 	query_2 += "GROUP BY airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id\
 		ORDER BY departure_time, arrival_time;"
-	app.logger.info("the query for flight is: %s", query_2)
 	cursor.execute(query_2, (airline_name))
 	flights = cursor.fetchall()
 	cursor.close()
@@ -1122,7 +1085,6 @@ def airline_staff_create_new_flight():
 	cursor.execute(query_1, (username))
 	airline_name_data = cursor.fetchone()
 	airline_name = airline_name_data["airline_name"]
-	app.logger.info("airline name is %s", airline_name)
 
 	error = None
 	# receive the inputs of creating a new flight
@@ -1218,7 +1180,6 @@ def airline_staff_create_new_flight():
 		WHERE airline_name = %s AND (departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')) \
 		GROUP BY airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id\
 		ORDER BY departure_time, arrival_time;"
-	app.logger.info("the query for flight is: %s", query_2)
 	cursor.execute(query_2, (airline_name))
 	flights = cursor.fetchall()
 	cursor.close()
@@ -1241,7 +1202,6 @@ def airline_staff_change_flight_status():
 	cursor.execute(query_1, (username))
 	airline_name_data = cursor.fetchone()
 	airline_name = airline_name_data["airline_name"]
-	app.logger.info("airline name is %s", airline_name)
 
 	error = None
 	# receive the inputs of updating a flight status
@@ -1315,7 +1275,6 @@ def airline_staff_add_airplane():
 	cursor.execute(query_1, (username))
 	airline_name_data = cursor.fetchone()
 	airline_name = airline_name_data["airline_name"]
-	app.logger.info("airline name is %s", airline_name)
 
 	error = None
 	# receive the inputs of creating a new plane
@@ -1350,7 +1309,6 @@ def airline_staff_add_airplane():
 	
 	# display all the existing planes in the airline that the staff belongs to
 	query_2 = "SELECT * FROM airplane WHERE airline_name = %s ORDER BY airplane_id;"
-	app.logger.info("the query for airplane is: %s", query_2)
 	cursor.execute(query_2, (airline_name))
 	airplane = cursor.fetchall()
 	cursor.close()
