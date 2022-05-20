@@ -91,18 +91,284 @@ WHERE username = 'test_username' AND password = MD5('pwd');
 ## Customer
 
 1. **View My flights**: Provide various ways for the user to see flights information which he/she purchased. The default should be showing for the upcoming flights. The user can vaguely specify a range of dates, specify destination and/or source airport name or city name.
+
+- The default query is to get the upcoming 30 day's flight information:
+
+``` sql
+SELECT ticket_id, airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id 
+FROM flight NATURAL JOIN (ticket NATURAL JOIN purchases) 
+WHERE customer_email = "test"
+AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')
+ORDER BY departure_time, arrival_time;
+```
+
+- If user specifies only part of the selections from "departure date start, departure date end, departure city and airport, and arrival city and airport" (i.e., vague search):
+
+``` sql
+SELECT ticket_id, airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id 
+FROM flight NATURAL JOIN (ticket NATURAL JOIN purchases) 
+WHERE customer_email = "test"
+AND arrival_airport IN ('PVG', 'JFK')
+AND DATE(departure_time) >= '2022-05-01' 
+ORDER BY departure_time, arrival_time;
+```
+
+- If user specifies all the selections:
+
+``` sql
+SELECT ticket_id, airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id 
+FROM flight NATURAL JOIN (ticket NATURAL JOIN purchases) 
+WHERE customer_email = "test"
+AND departure_airport IN ('La Guardia') 
+AND arrival_airport IN ('Louisville SDF', 'PVG') 
+AND DATE(departure_time) BETWEEN '2022-05-01' AND '2022-07-13' 
+ORDER BY departure_time, arrival_time;
+```
+
 2. **Purchase tickets**: Customer chooses a flight and purchase ticket for this flight.
+
+- Check if there is ticket left
+
+``` sql
+SELECT ticket_id 
+FROM ticket WHERE airline_name = 'Jet Blue' 
+AND flight_num = 9999
+AND ticket_id NOT IN 
+(SELECT ticket_id FROM purchases);
+```
+
+- Get the ticket id for this purchase
+
+``` sql
+SELECT min(ticket_id) AS min_ticket_id 
+FROM ticket WHERE airline_name = 'Jet Blue' 
+AND flight_num = 9999
+AND ticket_id NOT IN 
+(SELECT ticket_id FROM purchases);
+```
+
+- Purchase the ticket
+
+``` sql
+-- Parameter order: ticket_id, customer_email, booking_agent_id, purchase_date
+INSERT INTO purchases 
+VALUES (101, 'test@nyu.edu', null, '2022-05-01');
+```
+
 3. **Search for flights**: Search for upcoming flights based on source city/airport name, destination city/airport name, date.
+
+- The default query is to get the upcoming 30 day's flight information:
+
+``` sql
+SELECT * 
+FROM flight 
+WHERE True 
+AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')
+ORDER BY departure_time, arrival_time;
+```
+
+- If user specifies only part of the selections from "departure date start, departure date end, departure city and airport, and arrival city and airport" (i.e., vague search):
+
+``` sql
+SELECT * 
+FROM flight 
+WHERE True 
+AND arrival_airport IN ('PVG', 'JFK')
+AND DATE(departure_time) >= '2022-05-01' 
+ORDER BY departure_time, arrival_time;
+```
+
+- If user specifies all the selections:
+
+``` sql
+SELECT * 
+FROM flight 
+WHERE True 
+AND departure_airport IN ('La Guardia') 
+AND arrival_airport IN ('Louisville SDF', 'PVG') 
+AND DATE(departure_time) BETWEEN '2022-05-01' AND '2022-07-13' 
+ORDER BY departure_time, arrival_time;
+```
+
 4. **Track My Spending**: Default view will be total amount of money spent in the past year and a bar chart showing month wise money spent for last 6 months. He/she will also have option to specify a range of dates to view total amount of money spent within that range and a bar chart showing month wise money spent within that range.
+
+- The default query is to get last 6 months' information:
+
+``` sql
+SELECT YEAR(purchase_date) AS purchase_year, MONTH(purchase_date) AS purchase_month, SUM(price) AS month_spent 
+FROM flight NATURAL JOIN ticket NATURAL JOIN purchases
+WHERE customer_email = 'test@nyu.edu' 
+AND purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 6 MONTH) AND NOW()
+GROUP BY purchase_year, purchase_month 
+ORDER BY purchase_year, purchase_month;
+```
+
+- If user specifies a range of dates:
+
+``` sql
+SELECT YEAR(purchase_date) AS purchase_year, MONTH(purchase_date) AS purchase_month, SUM(price) AS month_spent 
+FROM flight NATURAL JOIN ticket NATURAL JOIN purchases
+WHERE customer_email = 'test@nyu.edu' 
+AND purchase_date BETWEEN '2022-05-01' AND '2022-07-13' 
+GROUP BY purchase_year, purchase_month 
+ORDER BY purchase_year, purchase_month;
+```
 
 ## Booking Agent
 
 1. **View My flights**: Provide various ways for the booking agents to see flights information for which he/she purchased on behalf of customers. The default should be showing for the upcoming flights. The user can specify a range of dates, specify destination and/or source airport name and/or city name etc to show all the flights for which he/she purchased tickets.
+
+- The default query is to get the upcoming 30 day's flight information:
+
+``` sql
+SELECT customer_email, name as customer_name, ticket_id, airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id 
+FROM flight NATURAL JOIN (ticket NATURAL JOIN (purchases JOIN customer ON customer_email=email )) 
+WHERE booking_agent_id = 777
+AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')
+ORDER BY departure_time, arrival_time;
+```
+
+- If user specifies only part of the selections from "departure date start, departure date end, departure city and airport, and arrival city and airport" (i.e., vague search):
+
+``` sql
+SELECT customer_email, name as customer_name, ticket_id, airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id 
+FROM flight NATURAL JOIN (ticket NATURAL JOIN (purchases JOIN customer ON customer_email=email )) 
+WHERE booking_agent_id = 777
+AND arrival_airport IN ('PVG', 'JFK')
+AND DATE(departure_time) >= '2022-05-01' 
+ORDER BY departure_time, arrival_time;
+```
+
+- If user specifies all the selections:
+
+``` sql
+SELECT customer_email, name as customer_name, ticket_id, airline_name, flight_num, departure_airport, arrival_airport, departure_time, arrival_time, price, status, airplane_id 
+FROM flight NATURAL JOIN (ticket NATURAL JOIN (purchases JOIN customer ON customer_email=email )) 
+WHERE booking_agent_id = 777
+AND departure_airport IN ('La Guardia') 
+AND arrival_airport IN ('Louisville SDF', 'PVG') 
+AND DATE(departure_time) BETWEEN '2022-05-01' AND '2022-07-13' 
+ORDER BY departure_time, arrival_time;
+```
+
 2. **Purchase tickets**: Booking agent chooses a flight and purchases tickets for other customers giving customer information. The booking agent may only purchase tickets from airlines they work for.
+
+- Check if there is ticket left
+
+``` sql
+SELECT ticket_id 
+FROM ticket WHERE airline_name = 'Jet Blue' 
+AND flight_num = 9999
+AND ticket_id NOT IN 
+(SELECT ticket_id FROM purchases);
+```
+
+- Get the ticket id for this purchase
+
+``` sql
+SELECT min(ticket_id) AS min_ticket_id 
+FROM ticket WHERE airline_name = 'Jet Blue' 
+AND flight_num = 9999
+AND ticket_id NOT IN 
+(SELECT ticket_id FROM purchases);
+```
+
+- Purchase the ticket
+
+``` sql
+-- Parameter order: ticket_id, customer_email, booking_agent_id, purchase_date
+INSERT INTO purchases 
+VALUES (101, 'test@nyu.edu', 777, '2022-05-01');
+```
+
 3. **Search for flights**: Search for upcoming flights based on source city/airport name, destination city/airport name, date.
+
+- The default query is to get the upcoming 30 day's flight information:
+
+``` sql
+SELECT * 
+FROM flight 
+WHERE True 
+AND departure_time BETWEEN NOW() AND ADDTIME(NOW(), '30 0:0:0')
+ORDER BY departure_time, arrival_time;
+```
+
+- If user specifies only part of the selections from "departure date start, departure date end, departure city and airport, and arrival city and airport" (i.e., vague search):
+
+``` sql
+SELECT * 
+FROM flight 
+WHERE True 
+AND arrival_airport IN ('PVG', 'JFK')
+AND DATE(departure_time) >= '2022-05-01' 
+ORDER BY departure_time, arrival_time;
+```
+
+- If user specifies all the selections:
+
+``` sql
+SELECT * 
+FROM flight 
+WHERE True 
+AND departure_airport IN ('La Guardia') 
+AND arrival_airport IN ('Louisville SDF', 'PVG') 
+AND DATE(departure_time) BETWEEN '2022-05-01' AND '2022-07-13' 
+ORDER BY departure_time, arrival_time;
+```
+
 4. **View my commission**: Default view will be total amount of commission received in the past 30 days and the average commission he/she received per ticket booked in the past 30 days and total number of tickets sold by him in the past 30 days. He/she will also have option to specify a range of dates to view total amount of commission received and total numbers of tickets sold.
+
+- The default query is to get last 30 days' information:
+
+``` sql
+SELECT SUM(price)/10 AS total_commission, COUNT(*) AS ticket_num, AVG(price)/10 AS avg_commission 
+FROM flight NATURAL JOIN (ticket NATURAL JOIN purchases) 
+WHERE booking_agent_id = 777
+AND purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 MONTH) AND NOW();
+```
+
+- If user specifies a range of dates vaguely:
+
+``` sql
+SELECT SUM(price)/10 AS total_commission, COUNT(*) AS ticket_num, AVG(price)/10 AS avg_commission 
+FROM flight NATURAL JOIN (ticket NATURAL JOIN purchases) 
+WHERE booking_agent_id = 777
+AND purchase_date >= '2022-05-01';
+```
+
+- If user specifies a range of dates:
+
+``` sql
+SELECT SUM(price)/10 AS total_commission, COUNT(*) AS ticket_num, AVG(price)/10 AS avg_commission 
+FROM flight NATURAL JOIN (ticket NATURAL JOIN purchases) 
+WHERE booking_agent_id = 777
+AND purchase_date BETWEEN '2022-05-01' AND '2022-07-13';
+```
+		
 5. **View Top Customers**: Top 5 customers based on number of tickets bought from the booking agent in the past 6 months and top 5 customers based on amount of commission received in the last year. Show a bar chart showing each of these 5 customers in x-axis and number of tickets bought in y-axis. Show another bar chart showing each of these 5 customers in x-axis and amount commission received in y- axis.
 
+- The result in the past 6 months:
+
+``` sql
+SELECT customer_email, COUNT(ticket_id) AS ticket_num 
+FROM purchases 
+WHERE booking_agent_id = 777 
+AND purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 6 MONTH) AND NOW()
+GROUP BY customer_email 
+ORDER BY ticket_num DESC LIMIT 5;
+```
+
+- The result in the last year:
+
+``` sql
+SELECT customer_email, COUNT(ticket_id) AS ticket_num 
+FROM purchases 
+WHERE booking_agent_id = 777 
+AND purchase_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 YEAR) AND NOW()
+GROUP BY customer_email 
+ORDER BY ticket_num DESC LIMIT 5;
+```
+		
 ## Airline Staff
 
 1. **View My flights**: Defaults will be showing all the upcoming flights operated by the airline he/she works for the next 30 days. He/she will be able to see all the current/future/past flights operated by the airline he/she works for based on range of dates, source/destination airports/city etc. He/she will be able to see all the customers of a particular flight.
