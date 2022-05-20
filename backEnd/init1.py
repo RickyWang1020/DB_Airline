@@ -940,6 +940,7 @@ def booking_agent_view_top_customers():
 	query_1 = "SELECT customer_email, COUNT(ticket_id) AS ticket_num \
 		FROM purchases \
 		WHERE booking_agent_id = %s \
+		AND {}\
 		GROUP BY customer_email \
 		ORDER BY ticket_num DESC LIMIT 5;".format(period_statement_1)
 	cursor.execute(query_1, (booking_agent_id))
@@ -947,6 +948,7 @@ def booking_agent_view_top_customers():
 	query_2 = "SELECT customer_email, SUM(price) AS total_commission\
 		FROM flight NATURAL JOIN ticket NATURAL JOIN purchases \
 		WHERE booking_agent_id = %s \
+		AND {}\
 		GROUP BY customer_email \
 		ORDER BY total_commission DESC LIMIT 5;".format(period_statement_2)
 	cursor.execute(query_2, (booking_agent_id))
