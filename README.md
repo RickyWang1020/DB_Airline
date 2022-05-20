@@ -13,6 +13,12 @@ It serves as the Final Project for Databases course Spring 2022, NYU Shanghai.
 - Xampp 7.4.27
 - Python Flask, pyMySql modules
 
+## How to Use
+
+1. Launch Xampp, start the Apache server
+2. Run `backEnd/init1.py`
+3. On web browser, type `http://127.0.0.1:5000` to interact with the webpage
+
 ## Folder Structure
 
 - README.md: this documentation file
